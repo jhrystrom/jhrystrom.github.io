@@ -21,7 +21,7 @@ repository               : "jhrystrom/jhrystrom.github.io"
 #               Additional customization can be done by editing /_includes/author-profile.html
 author:
   # Biographic information
-  avatar           : "portrait-square.jpg"
+  avatar           : "portrait-square.jpeg"
   name             : ""
   pronouns         : # example: "she/her"  
   bio              : "DPhil Social Data Science Candidate working on the fairness of AI Agents."
@@ -58,7 +58,7 @@ author:
   keybase          : # Username
   instagram        : # Username
   lastfm           : # Username
-  linkedin         : # Username
+  linkedin         : https://www.linkedin.com/in/jonathan-rystroem/
   mastodon         : # URL
   medium           : # URL
   pinterest        : # Username
