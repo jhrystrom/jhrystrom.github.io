@@ -21,10 +21,10 @@ repository               : "jhrystrom/jhrystrom.github.io"
 #               Additional customization can be done by editing /_includes/author-profile.html
 author:
   # Biographic information
-  avatar           : "profile.png"
+  avatar           : "portrait-square.jpg"
   name             : ""
   pronouns         : # example: "she/her"  
-  bio              : "DPhil Social Data Science Candidate intersted in the fairness of AI Agents."
+  bio              : "DPhil Social Data Science Candidate working on the fairness of AI Agents."
   location         : "Earth"
   employer         : "Oxford Internet Institute"
   uri              : # URL
@@ -32,11 +32,11 @@ author:
 
   # Academic websites
   arxiv            : # URL - Update with the correct link to your profile
-  googlescholar    : "https://scholar.google.com/citations?user=PS_CX0AAAAAJ"
+  googlescholar    : "https://scholar.google.com/citations?user=bKLjkOMAAAAJ"
   impactstory      : # URL
-  orcid            : "http://orcid.org/yourorcidurl"
+  orcid            : "https://orcid.org/0000-0003-1030-5839"
   semantic         : # URL
-  pubmed           : "https://www.ncbi.nlm.nih.gov/pubmed/?term=john+snow"
+  pubmed           : # URL
   researchgate     : # URL
   scopus           : # URL
 
