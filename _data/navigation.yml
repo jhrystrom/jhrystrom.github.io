@@ -13,12 +13,9 @@ main:
 
   - title: "Teaching"
     url: /teaching/    
-    
-  - title: "Portfolio"
-    url: /portfolio/
         
   - title: "Blog Posts"
-    url: /blogs/
+    url: /blog-posts/
     
   # - title: "CV"
   #   url: /cv/
