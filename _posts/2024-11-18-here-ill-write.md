@@ -5,4 +5,4 @@ permalink: /posts/2024/11/this-is-for-writing/
 tags:
   - cool posts
 ---
-I get I can use this for writing blog posts!
+I guess I can use this for writing blog posts!
