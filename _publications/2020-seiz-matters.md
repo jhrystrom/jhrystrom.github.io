@@ -1,7 +1,7 @@
 ---
 title: "The Danish Gigaword Corpus"
 collection: publications
-category: journals
+category: manuscripts
 permalink: /publication/2020-seiz-matters
 excerpt: 'How to use epidemiological models to measure the spread of new words on Twitter.'
 date: 2021-07-21
