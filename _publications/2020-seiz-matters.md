@@ -1,5 +1,5 @@
 ---
-title: "The Danish Gigaword Corpus"
+title: "SEIZ Matters: Modelling the spread of concepts on Twitter"
 collection: publications
 category: manuscripts
 permalink: /publication/2020-seiz-matters
