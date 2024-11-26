@@ -36,6 +36,9 @@ Bolukbasi, T., Chang, K.-W., Zou, J. Y., Saligrama, V., & Kalai, A. T. (2016). M
 
 Gordon, J., Babaeianjelodar, M., & Matthews, J. (2020). Studying Political Bias via Word Embeddings. Companion Proceedings of the Web Conference 2020, 760–764. https://doi.org/10.1145/3366424.3383560
 
+Rystrøm, J. (2024). Jhrystrom/wicked-fair [Computer software]. https://github.com/jhrystrom/wicked-fair (Original work published 2024)
+
+
 Tessler, M. H., Bakker, M. A., Jarrett, D., Sheahan, H., Chadwick, M. J., Koster, R., Evans, G., Campbell-Gillingham, L., Collins, T., Parkes, D. C., Botvinick, M., & Summerfield, C. (2024). AI can help humans find common ground in democratic deliberation. Science, 386(6719), eadq2852. https://doi.org/10.1126/science.adq2852
 
 
