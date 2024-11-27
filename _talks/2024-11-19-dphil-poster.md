@@ -13,10 +13,13 @@ Below are the references and resources used for my DPhil poster presentation at 
 
 ## References
 ### Why care about AI agents? 
+Chan, A., Salganik, R., Markelius, A., Pang, C., Rajkumar, N., Krasheninnikov, D., Langosco, L., He, Z., Duan, Y., Carroll, M., Lin, M., Mayhew, A., Collins, K., Molamohammadi, M., Burden, J., Zhao, W., Rismani, S., Voudouris, K., Bhatt, U., … Maharaj, T. (2023). Harms from increasingly agentic algorithmic systems. Proceedings of the 2023 ACM Conference on Fairness, Accountability, and Transparency, 651–666. https://doi.org/10.1145/3593013.3594033
+
 Eloundou, T., Manning, S., Mishkin, P., & Rock, D. (2024). GPTs are GPTs: Labor market impact potential of LLMs. Science, 384(6702), 1306–1308. https://doi.org/10.1126/science.adj0998
 
 Wang, L., Ma, C., Feng, X., Zhang, Z., Yang, H., Zhang, J., Chen, Z., Tang, J., Chen, X., Lin, Y., Zhao, W. X., Wei, Z., & Wen, J. (2024). A survey on large language model based autonomous agents. Frontiers of Computer Science, 18(6), 186345. https://doi.org/10.1007/s11704-024-40231-1
 f
+
 
 ### Why the Danish public sector?
 Ilsøe, A., Larsen, T. P., Mathieu, C., & Rolandsson, B. (2024). Negotiating about Algorithms: Social Partner Responses to AI in Denmark and Sweden. ILR Review, 77(5), 856–868. https://doi.org/10.1177/00197939241278956f
@@ -25,10 +28,11 @@ Jørgensen, R. F. (2023). Data and rights in the digital welfare state: The case
 
 
 ### What are current limitations
+Kapoor, S., Stroebl, B., Siegel, Z. S., Nadgir, N., & Narayanan, A. (2024). AI agents that matter (No. arXiv:2407.01502). arXiv. https://doi.org/10.48550/arXiv.2407.01502
+
 Selbst, A. D., boyd,  danah, Friedler, S. A., Venkatasubramanian, S., & Vertesi, J. (2019). Fairness and Abstraction in Sociotechnical Systems. Proceedings of the Conference on Fairness, Accountability, and Transparency, 59–68. https://doi.org/10.1145/3287560.3287598
 
 Weidinger, L., Rauh, M., Marchal, N., Manzini, A., Hendricks, L. A., Mateos-Garcia, J., Bergman, S., Kay, J., Griffin, C., Bariach, B., Gabriel, I., Rieser, V., & Isaac, W. (2023). Sociotechnical Safety Evaluation of Generative AI Systems (No. arXiv:2310.11986). arXiv. http://arxiv.org/abs/2310.11986
-
 
 
 ### Paper 1: Political bias
