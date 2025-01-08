@@ -6,7 +6,7 @@ tags:
   - cool posts
   - meta
 ---
-![Artist rendition of changing code late in a research project](../images/distressed-researcher.webp)
+![Artist rendition of changing code late in a research project](/images/distressed-researcher.webp)
 *Artist rendition of changing code late in a research project*
 
 We've all been there: What starts as a small research idea grows into a paper draft, and suddenly you need to add new conditions, try different models, or analyze the data in a new way. Before you know it, your codebase has turned into spaghetti, and making changes becomes a dreaded task. What began as an exciting research question becomes bogged down in technical debt caused by hacky choices made by a slightly younger but much more foolish version of yourself. If only there were a way to avoid this madness.
