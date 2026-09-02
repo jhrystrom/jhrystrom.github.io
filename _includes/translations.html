@@ -1,0 +1,18 @@
+{% if page.translation_key %}
+  {% assign lang_names = "da:Dansk|en:English" | split: "|" %}
+  {% for other in site.posts %}
+    {% if other.translation_key == page.translation_key and other.lang != page.lang %}
+      <p class="page__translation">
+        {% for pair in lang_names %}
+          {% assign kv = pair | split: ":" %}
+          {% if kv[0] == other.lang %}
+            <i class="fa fa-fw fa-language" aria-hidden="true"></i> Also available in <a href="{{ base_path }}{{ other.url }}">{{ kv[1] }}</a>{% unless other.original %} (AI-translated){% endunless %}
+          {% endif %}
+        {% endfor %}
+        {% unless page.original %}
+          <br /><em>This is an AI-written translation of the (human-written) original.</em>
+        {% endunless %}
+      </p>
+    {% endif %}
+  {% endfor %}
+{% endif %}
