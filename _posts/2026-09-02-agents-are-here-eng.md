@@ -1,6 +1,6 @@
 ---
 title: 'AI agents are not the future, they are already here'
-date: 2026-09-03
+date: 2026-09-02
 permalink: /posts/2026/09/agents-are-here-eng/
 lang: en
 translation_key: agents-are-here

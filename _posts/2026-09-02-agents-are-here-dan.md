@@ -1,6 +1,6 @@
 ---
 title: 'AI-agenter er ikke fremtiden, de er her allerede'
-date: 2026-09-03
+date: 2026-09-02
 permalink: /posts/2026/09/agents-are-here-dan/
 lang: da
 translation_key: agents-are-here
