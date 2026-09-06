@@ -80,7 +80,7 @@ class Page:
     url: str
     kind: str  # "post" | "talk" | "index"
     html: str = ""
-    translations: list["Page"] = field(default_factory=list)
+    translations: list[Page] = field(default_factory=list)
 
     @property
     def title(self) -> str:
@@ -307,8 +307,8 @@ def build(out: Path, strict: bool) -> int:
         md.reset()
         page.html = md.convert(page.body)
 
-    posts.sort(key=lambda p: (p.date or dt.date.min), reverse=True)
-    talks.sort(key=lambda p: (p.date or dt.date.min), reverse=True)
+    posts.sort(key=lambda p: p.date or dt.date.min, reverse=True)
+    talks.sort(key=lambda p: p.date or dt.date.min, reverse=True)
     listed = [p for p in posts if p.is_original]
 
     env = Environment(
@@ -339,7 +339,10 @@ def build(out: Path, strict: bool) -> int:
         "author": AUTHOR,
         "lang_names": LANG_NAMES,
         "default_lang": DEFAULT_LANG,
-        "updated": max((p.date for p in listed if p.date), default=dt.date.today()),
+        "updated": max(
+            (p.date for p in listed if p.date),
+            default=dt.datetime.now(tz=dt.UTC).date(),
+        ),
     }
 
     if out.exists():
