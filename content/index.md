@@ -17,12 +17,3 @@ sociotechnical evaluation more broadly, such as
 
 When I'm not researching, I play jazz ukulele (and [live karaoke](https://karaokecollective.com/)),
 read books, and chat about things big and small.
-
-## Publications
-
-- **The Danish Gigaword Corpus** — NoDaLiDa, 2021.
-  [Paper](https://aclanthology.org/2021.nodalida-main.46/)
-- **SEIZ Matters: Modelling the spread of concepts on Twitter** — Journal of Language Works, 2020.
-  [Paper](https://tidsskrift.dk/lwo/article/view/121220)
-
-More on [Google Scholar](https://scholar.google.com/citations?user=bKLjkOMAAAAJ).
