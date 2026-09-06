@@ -9,19 +9,16 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
         with:
           enable-cache: true
-      - uses: extractions/setup-just@v3
+          cache-dependency-glob: build.py.lock
+      - uses: extractions/setup-just@v4
       - run: just check
 
   deploy:
@@ -31,17 +28,22 @@ jobs:
     permissions:
       pages: write
       id-token: write
+    # Scoped to this job so a PR's checks never hold up a deploy.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
         with:
           enable-cache: true
+          cache-dependency-glob: build.py.lock
       - run: uv run build.py --out _site
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
