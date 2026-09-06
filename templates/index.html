@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block header %}<h1><a href="/">{{ site_title }}</a></h1>{% endblock %}
 {% block main %}
+  <img class="portrait" src="/images/portrait.jpeg" alt="Jonathan Rystrøm" />
   {{ page.html | safe }}
   <h2>Writing</h2>
   <ul class="posts">

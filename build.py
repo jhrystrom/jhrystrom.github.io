@@ -250,9 +250,15 @@ def check_internal_links(
 
 
 def check_unused_images(
-    static_dir: Path, pages: list[Page], problems: Problems
+    static_dir: Path, pages: list[Page], templates: Path, problems: Problems
 ) -> None:
+    """Flag images nothing links to. Templates count as references, not just content."""
     referenced = {ref for page in pages for ref in LOCAL_REF_RE.findall(page.html)}
+    for template in sorted(templates.rglob("*")):
+        if template.is_file():
+            referenced |= set(
+                LOCAL_REF_RE.findall(template.read_text(encoding="utf-8"))
+            )
     for image in sorted((static_dir / "images").glob("*")):
         url = "/" + str(image.relative_to(static_dir))
         if url not in referenced:
@@ -327,7 +333,7 @@ def build(out: Path, strict: bool) -> int:
         if p.is_file()
     }
     check_internal_links(pages, static_files, problems)
-    check_unused_images(static_dir, pages, problems)
+    check_unused_images(static_dir, pages, ROOT / "templates", problems)
 
     if (failed := report(problems, strict)) is not None:
         return failed

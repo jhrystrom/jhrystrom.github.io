@@ -173,3 +173,20 @@ header.site h1 {
   font-size: 1.55rem;
   margin: 0;
 }
+
+.portrait {
+  float: right;
+  width: 7rem;
+  height: 7rem;
+  margin: 0.2rem 0 1rem 1.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+@media (max-width: 32rem) {
+  .portrait {
+    float: none;
+    display: block;
+    margin: 0 0 1.25rem;
+  }
+}
