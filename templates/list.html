@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Talk notes — {{ site_title }}{% endblock %}
+{% block description %}References and resources from talks and posters.{% endblock %}
+{% block main %}
+  <h1>Talk notes</h1>
+  <p>References and resources from talks and posters.</p>
+  <ul class="posts">
+    {% for page in pages %}
+      <li>
+        <time datetime="{{ page.date }}">{{ page.date | date }}</time>
+        <span><a href="{{ page.url }}">{{ page.title }}</a></span>
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}
