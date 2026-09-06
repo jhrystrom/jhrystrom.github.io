@@ -27,7 +27,3 @@ check:
     uv run ruff format --check .
     uv run ruff check .
     uv run mdformat --check content/
-
-# Check that outbound links still resolve. Slow and network-dependent, so not in `check`.
-check-links: build
-    uvx --from lychee-bin lychee --no-progress _site
