@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="{{ page.lang if page is defined else default_lang }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}{{ site_title }}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{{ site_description }}{% endblock %}" />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="alternate" type="application/atom+xml" href="/feed.xml" title="{{ site_title }}" />
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <header class="site">
+      {% block header %}<a href="/">{{ site_title }}</a>{% endblock %}
+    </header>
+    <main>{% block main %}{% endblock %}</main>
+    <footer class="site">
+      <a href="/talks/">Talk notes</a>
+      <a href="https://scholar.google.com/citations?user=bKLjkOMAAAAJ">Scholar</a>
+      <a href="https://github.com/jhrystrom">GitHub</a>
+      <a href="https://www.linkedin.com/in/jonathan-rystroem/">LinkedIn</a>
+      <a href="/feed.xml">Feed</a>
+    </footer>
+  </body>
+</html>

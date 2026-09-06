@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} — {{ site_title }}{% endblock %}
+{% block description %}{{ page.meta.summary | default(site_description, true) }}{% endblock %}
+{% block head %}
+  <link rel="canonical" href="{{ page.abs_url }}" />
+  {% if page.translations %}
+    <link rel="alternate" hreflang="{{ page.lang }}" href="{{ page.abs_url }}" />
+    {% for other in page.translations %}
+      <link rel="alternate" hreflang="{{ other.lang }}" href="{{ other.abs_url }}" />
+    {% endfor %}
+  {% endif %}
+{% endblock %}
+{% block main %}
+  <article>
+    <h1>{{ page.title }}</h1>
+    <p class="meta">
+      <time datetime="{{ page.date }}">{{ page.date | date }}</time>
+      {% if page.meta.get("venue") %}&middot; {{ page.meta.get("venue") }}{% endif %}
+    </p>
+    {% for other in page.translations %}
+      <p class="meta translation">
+        {% if page.is_original %}
+          Also available in <a href="{{ other.url }}">{{ lang_names[other.lang] }}</a> (AI-translated).
+        {% else %}
+          This is an AI translation of the <a href="{{ other.url }}">{{ lang_names[other.lang] }} original</a>.
+        {% endif %}
+      </p>
+    {% endfor %}
+    {{ page.html | safe }}
+  </article>
+{% endblock %}
