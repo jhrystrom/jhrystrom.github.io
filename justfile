@@ -1,6 +1,4 @@
-# Tool versions are pinned so a local run and a CI run can never disagree.
-ruff := "ruff@0.16.6"
-mdformat := "--with mdformat-frontmatter==2.1.2 mdformat@1.0.0"
+# Dependencies live in pyproject.toml; uv.lock keeps a local run and a CI run identical.
 
 # List available commands.
 default:
@@ -20,15 +18,15 @@ dev: build
 
 # Format everything in place.
 fmt:
-    uvx {{ ruff }} format .
-    uvx {{ mdformat }} content/
+    uv run ruff format .
+    uv run mdformat content/
 
 # Fail on anything malformed. CI runs exactly this.
 check:
     uv run build.py --out .check-site --strict
-    uvx {{ ruff }} format --check .
-    uvx {{ ruff }} check .
-    uvx {{ mdformat }} --check content/
+    uv run ruff format --check .
+    uv run ruff check .
+    uv run mdformat --check content/
 
 # Check that outbound links still resolve. Slow and network-dependent, so not in `check`.
 check-links: build

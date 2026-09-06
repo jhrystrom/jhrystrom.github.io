@@ -17,7 +17,6 @@ jobs:
       - uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: true
-          cache-dependency-glob: build.py.lock
       - uses: extractions/setup-just@v4
       - run: just check
 
@@ -40,7 +39,6 @@ jobs:
       - uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: true
-          cache-dependency-glob: build.py.lock
       - run: uv run build.py --out _site
       - uses: actions/upload-pages-artifact@v5
         with:

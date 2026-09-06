@@ -1,7 +1,3 @@
-# /// script
-# requires-python = ">=3.12"
-# dependencies = ["markdown~=3.7", "jinja2~=3.1", "pyyaml~=6.0"]
-# ///
 """Build jhrystrom.github.io.
 
 Reads markdown from content/, renders it through templates/, writes a static site.
