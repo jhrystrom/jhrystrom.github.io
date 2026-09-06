@@ -269,6 +269,19 @@ def rfc3339(value: dt.date | None) -> str:
     return dt.datetime.combine(value, dt.time(12, 0), tzinfo=dt.UTC).isoformat()
 
 
+def report(problems: Problems, strict: bool) -> int | None:
+    """Print collected problems. Returns 1 if the build should stop, else None."""
+    if problems.errors or (strict and problems.warnings):
+        for line in problems.errors + problems.warnings:
+            print(line, file=sys.stderr)
+        count = len(problems.errors) + (len(problems.warnings) if strict else 0)
+        print(f"\n{count} problem(s); site not written.", file=sys.stderr)
+        return 1
+    for line in problems.warnings:
+        print(f"warning: {line}", file=sys.stderr)
+    return None
+
+
 def build(out: Path, strict: bool) -> int:
     problems = Problems()
     content = ROOT / "content"
@@ -286,6 +299,8 @@ def build(out: Path, strict: bool) -> int:
 
     link_translations(pages, problems)
     check_unique_urls(pages, problems)
+    if (failed := report(problems, strict)) is not None:
+        return failed
 
     md = markdown.Markdown(extensions=["extra", "smarty", "sane_lists"])
     for page in pages:
@@ -314,14 +329,8 @@ def build(out: Path, strict: bool) -> int:
     check_internal_links(pages, static_files, problems)
     check_unused_images(static_dir, pages, problems)
 
-    if problems.errors or (strict and problems.warnings):
-        for line in problems.errors + problems.warnings:
-            print(line, file=sys.stderr)
-        count = len(problems.errors) + (len(problems.warnings) if strict else 0)
-        print(f"\n{count} problem(s); site not written.", file=sys.stderr)
-        return 1
-    for line in problems.warnings:
-        print(f"warning: {line}", file=sys.stderr)
+    if (failed := report(problems, strict)) is not None:
+        return failed
 
     shared = {
         "site_url": SITE_URL,
