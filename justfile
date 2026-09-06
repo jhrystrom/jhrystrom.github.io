@@ -4,6 +4,10 @@
 default:
     @just --list
 
+# Install the pre-commit hook that runs `just check` before each commit.
+install-hooks:
+    uv run pre-commit install
+
 # Build the site into _site/.
 build:
     uv run build.py

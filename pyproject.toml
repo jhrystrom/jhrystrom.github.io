@@ -12,5 +12,6 @@ dependencies = [
 dev = [
     "mdformat>=1.0.0",
     "mdformat-frontmatter>=2.1.2",
+    "pre-commit>=4.4.0",
     "ruff>=0.16.6",
 ]

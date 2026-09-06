@@ -1,0 +1,11 @@
+# Install with `just install-hooks`.
+repos:
+  - repo: local
+    hooks:
+      # One hook so a local commit runs exactly what CI runs.
+      - id: just-check
+        name: just check
+        entry: just check
+        language: system
+        pass_filenames: false
+        always_run: true
