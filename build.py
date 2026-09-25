@@ -38,10 +38,11 @@ ALLOWED_KEYS = {
     "venue",
     "summary",
     "draft",
+    "pdf",
 }
 REQUIRED_KEYS = {"title", "date"}
 
-FRONT_MATTER_RE = re.compile(r"\A---\n(.*?)\n---\n(.*)\Z", re.DOTALL)
+FRONT_MATTER_RE = re.compile(r"\A---\n(.*?)\n---(?:\n(.*))?\Z", re.DOTALL)
 DATED_FILENAME_RE = re.compile(r"\A(\d{4})-(\d{2})-(\d{2})-(?P<slug>.+)\Z")
 LOCAL_REF_RE = re.compile(r"""(?:href|src)=["'](/[^"'#?]*)""")
 
@@ -94,6 +95,10 @@ class Page:
     def is_original(self) -> bool:
         """Listed in the feed unless the file explicitly opts out."""
         return self.meta.get("original") is not False
+
+    @property
+    def is_pdf(self) -> bool:
+        return "pdf" in self.meta
 
     @property
     def abs_url(self) -> str:
@@ -161,8 +166,29 @@ def parse(path: Path, kind: str, problems: Problems) -> Page | None:
             path, "translation_key requires lang", key_line(raw, "translation_key")
         )
 
-    url = resolve_url(path, meta, kind, raw, problems)
-    return Page(source=path, meta=meta, body=match.group(2), url=url, kind=kind)
+    if "pdf" in meta:
+        url = resolve_pdf(path, meta, kind, raw, problems)
+    else:
+        url = resolve_url(path, meta, kind, raw, problems)
+    return Page(source=path, meta=meta, body=match.group(2) or "", url=url, kind=kind)
+
+
+def resolve_pdf(path: Path, meta: dict, kind: str, raw: str, problems: Problems) -> str:
+    """A policy brief has no HTML page: its URL is the PDF itself, served from static/."""
+    pdf = meta["pdf"]
+    line = key_line(raw, "pdf")
+    if kind != "post":
+        problems.error(path, "pdf is only allowed on posts", line)
+    if "permalink" in meta:
+        problems.error(
+            path, "pdf and permalink are exclusive (the PDF is the URL)", line
+        )
+    if not (
+        isinstance(pdf, str) and pdf.startswith("/papers/") and pdf.endswith(".pdf")
+    ):
+        problems.error(path, f"pdf must look like /papers/name.pdf, got {pdf!r}", line)
+        return f"/{path.stem}.pdf"
+    return pdf
 
 
 def resolve_url(path: Path, meta: dict, kind: str, raw: str, problems: Problems) -> str:
@@ -245,20 +271,22 @@ def check_internal_links(
                 problems.error(page.source, f"internal link {ref} does not resolve")
 
 
-def check_unused_images(
+def check_unused_files(
     static_dir: Path, pages: list[Page], templates: Path, problems: Problems
 ) -> None:
-    """Flag images nothing links to. Templates count as references, not just content."""
+    """Flag images and PDFs nothing links to. Templates count as references, not just content."""
     referenced = {ref for page in pages for ref in LOCAL_REF_RE.findall(page.html)}
     for template in sorted(templates.rglob("*")):
         if template.is_file():
             referenced |= set(
                 LOCAL_REF_RE.findall(template.read_text(encoding="utf-8"))
             )
-    for image in sorted((static_dir / "images").glob("*")):
-        url = "/" + str(image.relative_to(static_dir))
-        if url not in referenced:
-            problems.warn(image, "image is not referenced by any page")
+    referenced |= {page.url for page in pages if page.is_pdf}
+    for folder in ("images", "papers"):
+        for asset in sorted((static_dir / folder).glob("*")):
+            url = "/" + str(asset.relative_to(static_dir))
+            if url not in referenced:
+                problems.warn(asset, "file is not referenced by any page")
 
 
 def date_filter(value: dt.date | None, fmt: str = "%b %-d, %Y") -> str:
@@ -284,7 +312,7 @@ def report(problems: Problems, strict: bool) -> int | None:
     return None
 
 
-def build(out: Path, strict: bool) -> int:
+def build(out: Path, strict: bool, future: bool) -> int:
     problems = Problems()
     content = ROOT / "content"
     static_dir = ROOT / "static"
@@ -293,8 +321,22 @@ def build(out: Path, strict: bool) -> int:
     posts = [parse(p, "post", problems) for p in sorted(content.glob("posts/*.md"))]
     talks = [parse(p, "talk", problems) for p in sorted(content.glob("talks/*.md"))]
 
+    today = dt.datetime.now(tz=dt.UTC).date()
+
+    def scheduled(page: Page) -> bool:
+        return isinstance(page.date, dt.date) and page.date > today
+
     def keep(candidates: list[Page | None]) -> list[Page]:
-        return [p for p in candidates if p is not None and not p.meta.get("draft")]
+        kept = []
+        for page in candidates:
+            if page is None or page.meta.get("draft"):
+                continue
+            # Scheduled: left out (and its PDF not required) until its date arrives.
+            if scheduled(page) and not future:
+                print(f"skipping {page.source.name}: scheduled for {page.date}")
+                continue
+            kept.append(page)
+        return kept
 
     posts, talks = keep(posts), keep(talks)
     pages = keep([index]) + posts + talks
@@ -329,7 +371,12 @@ def build(out: Path, strict: bool) -> int:
         if p.is_file()
     }
     check_internal_links(pages, static_files, problems)
-    check_unused_images(static_dir, pages, ROOT / "templates", problems)
+    for page in pages:
+        if page.is_pdf and page.url not in static_files:
+            # A --future preview shouldn't need a PDF that isn't due yet.
+            flag = problems.warn if scheduled(page) else problems.error
+            flag(page.source, f"pdf {page.url} not found in static/")
+    check_unused_files(static_dir, pages, ROOT / "templates", problems)
 
     if (failed := report(problems, strict)) is not None:
         return failed
@@ -366,6 +413,8 @@ def build(out: Path, strict: bool) -> int:
     )
     write("/talks/", env.get_template("list.html").render(pages=talks, **shared))
     for page in [*posts, *talks]:
+        if page.is_pdf:
+            continue  # served straight from static/
         write(page.url, env.get_template("page.html").render(page=page, **shared))
     write("/feed.xml", env.get_template("feed.xml").render(posts=listed, **shared))
     write("/sitemap.xml", env.get_template("sitemap.xml").render(pages=pages, **shared))
@@ -382,8 +431,11 @@ def main() -> int:
     parser.add_argument(
         "--strict", action="store_true", help="treat warnings as errors"
     )
+    parser.add_argument(
+        "--future", action="store_true", help="include posts dated in the future"
+    )
     args = parser.parse_args()
-    return build(args.out, args.strict)
+    return build(args.out, args.strict, args.future)
 
 
 if __name__ == "__main__":

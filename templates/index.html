@@ -9,7 +9,10 @@
       <li>
         <time datetime="{{ post.date }}">{{ post.date | date }}</time>
         <span>
-          <a href="{{ post.url }}">{{ post.title }}</a>
+          <a href="{{ post.url }}"{% if post.is_pdf %} type="application/pdf"{% endif %}>{{ post.title }}</a>
+          {% if post.is_pdf %}
+            <span class="translation">(Policy brief)</span>
+          {% endif %}
           {% for other in post.translations %}
             <a class="translation" href="{{ other.url }}">({{ lang_names[other.lang] }} available)</a>
           {% endfor %}

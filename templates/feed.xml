@@ -13,7 +13,7 @@
     <link href="{{ post.abs_url }}" />
     <id>{{ post.abs_url }}</id>
     <updated>{{ post.date | rfc3339 }}</updated>
-    <content type="html">{{ post.html }}</content>
+    <content type="html">{{ post.html or post.meta.get("summary", "") }}</content>
   </entry>
 {% endfor %}
 </feed>

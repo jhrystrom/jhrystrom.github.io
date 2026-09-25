@@ -156,7 +156,7 @@ ul.posts time {
   line-height: 1.75;
 }
 
-ul.posts a.translation {
+ul.posts .translation {
   font-size: 0.85rem;
   white-space: nowrap;
 }

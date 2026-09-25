@@ -8,16 +8,16 @@ default:
 install-hooks:
     uv run pre-commit install
 
-# Build the site into _site/.
-build:
-    uv run build.py
+# Build the site into _site/. Pass --future to include scheduled posts.
+build *flags:
+    uv run build.py {{flags}}
 
-# Build, serve on :8000, and rebuild whenever content or templates change.
-dev: build
+# Build, serve on :8000, and rebuild on change. `just dev --future` previews scheduled posts.
+dev *flags: (build flags)
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'kill 0' EXIT
-    uvx watchfiles "uv run build.py" content templates static &
+    uvx watchfiles "uv run build.py {{flags}}" content templates static &
     python3 -m http.server 8000 --directory _site
 
 # Format everything in place.

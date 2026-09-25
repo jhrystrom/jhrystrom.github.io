@@ -11,7 +11,7 @@ keeps a local run and a CI run resolving identically.
 ## Commands
 
 ```
-just dev      # build, serve on :8000, rebuild on change
+just dev      # build, serve on :8000, rebuild on change (--future: show scheduled posts)
 just build    # write _site/
 just fmt      # format Python and markdown in place
 just check    # fail on anything malformed — CI runs exactly this
@@ -37,8 +37,30 @@ Then `just check && git commit && git push`. Pushing to `master` deploys.
 it's derived as `/posts/<year>/<month>/<slug>/`), `summary` (meta description), `draft: true`
 (build it locally, exclude it from the site), and `venue` for talk notes.
 
+A post dated in the future is scheduled: it is left out of the build until that date, and
+its `pdf` doesn't have to exist yet. Nothing rebuilds on its own, so push on the day (for a
+policy brief, the push that adds the PDF) to make it go live. `just dev --future` previews
+scheduled posts; a scheduled PDF that's missing is only a warning there.
+
 Talk notes are the same thing in `content/talks/`. They appear at `/talks/`, not on the
 front page or in the feed.
+
+## Publishing a policy brief
+
+Put the PDF in `static/papers/`, then create a post that points at it:
+
+```markdown
+---
+title: "Some policy brief"
+date: 2026-09-06
+pdf: /papers/some-policy-brief.pdf
+summary: "One line for the feed."
+---
+```
+
+It is listed under Writing with a `(Policy brief)` tag, and the title links straight to the
+PDF, which browsers open in their viewer instead of downloading. No HTML page is built for it,
+so a body is optional; the feed shows the body, or the `summary` if there is none.
 
 ## Publishing a translated pair
 
@@ -64,7 +86,8 @@ Only the original is listed on the front page and in the feed, with an
   sharing a `lang`
 - two pages resolving to the same URL
 - an internal link or image that doesn't resolve
-- an image in `static/images/` that no page references
+- a `pdf` that isn't in `static/papers/`
+- an image in `static/images/` or a PDF in `static/papers/` that no page references
 
 Problems print as `content/posts/foo.md:4: …` so an editor can jump to them.
 
