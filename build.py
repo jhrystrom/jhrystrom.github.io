@@ -272,16 +272,23 @@ def check_internal_links(
 
 
 def check_unused_files(
-    static_dir: Path, pages: list[Page], templates: Path, problems: Problems
+    static_dir: Path,
+    pages: list[Page],
+    held_back: list[Page],
+    templates: Path,
+    problems: Problems,
 ) -> None:
-    """Flag images and PDFs nothing links to. Templates count as references, not just content."""
+    """Flag images and PDFs nothing links to. Templates count as references, not just content.
+
+    Scheduled pages left out of the build still claim their PDF, so it can be committed early.
+    """
     referenced = {ref for page in pages for ref in LOCAL_REF_RE.findall(page.html)}
     for template in sorted(templates.rglob("*")):
         if template.is_file():
             referenced |= set(
                 LOCAL_REF_RE.findall(template.read_text(encoding="utf-8"))
             )
-    referenced |= {page.url for page in pages if page.is_pdf}
+    referenced |= {page.url for page in pages + held_back if page.is_pdf}
     for folder in ("images", "papers"):
         for asset in sorted((static_dir / folder).glob("*")):
             url = "/" + str(asset.relative_to(static_dir))
@@ -326,6 +333,8 @@ def build(out: Path, strict: bool, future: bool) -> int:
     def scheduled(page: Page) -> bool:
         return isinstance(page.date, dt.date) and page.date > today
 
+    held_back: list[Page] = []
+
     def keep(candidates: list[Page | None]) -> list[Page]:
         kept = []
         for page in candidates:
@@ -334,6 +343,7 @@ def build(out: Path, strict: bool, future: bool) -> int:
             # Scheduled: left out (and its PDF not required) until its date arrives.
             if scheduled(page) and not future:
                 print(f"skipping {page.source.name}: scheduled for {page.date}")
+                held_back.append(page)
                 continue
             kept.append(page)
         return kept
@@ -376,7 +386,7 @@ def build(out: Path, strict: bool, future: bool) -> int:
             # A --future preview shouldn't need a PDF that isn't due yet.
             flag = problems.warn if scheduled(page) else problems.error
             flag(page.source, f"pdf {page.url} not found in static/")
-    check_unused_files(static_dir, pages, ROOT / "templates", problems)
+    check_unused_files(static_dir, pages, held_back, ROOT / "templates", problems)
 
     if (failed := report(problems, strict)) is not None:
         return failed
