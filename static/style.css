@@ -4,6 +4,7 @@
   --muted: #6a6a6a;
   --link: #1c53a8;
   --rule: #e2e2df;
+  --note-bg: #eef2f8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -13,6 +14,7 @@
     --muted: #9a9a95;
     --link: #8ab4f8;
     --rule: #2c2f36;
+    --note-bg: #222833;
   }
 }
 
@@ -80,6 +82,21 @@ blockquote {
   padding-left: 1rem;
   border-left: 2px solid var(--rule);
   color: var(--muted);
+}
+
+.note {
+  display: block;
+  margin: 0 0 1.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--link);
+  border-radius: 4px;
+  background: var(--note-bg);
+  font-size: 0.95em;
+}
+
+.note > :last-child {
+  margin-bottom: 0;
 }
 
 code {
