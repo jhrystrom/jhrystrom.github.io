@@ -86,14 +86,19 @@
         <input id="target-kg" type="number" min="1" step="0.5" value="20">
       </div>
       <div id="cardio-inputs" class="hidden">
-        <label for="preset-c">Activity (METs)</label>
+        <label for="preset-c">Activity (MET₆₀₊)</label>
         <select id="preset-c">
           <option value="">Custom</option>
-          <option value="4.3">Brisk walk, 3.5 mph (4.3)</option>
-          <option value="6.0">Hiking, cross-country (6.0)</option>
-          <option value="8.8">Climbing stairs, fast (8.8)</option>
-          <option value="8.0">Cycling 12–14 mph (8.0)</option>
-          <option value="8.0">Tennis, singles (8.0)</option>
+          <option value="indep">Stay independent (18 ♂ / 15 ♀ VO₂max)</option>
+          <option value="5.3">Walk 2.8–3.2 mph, moderate (5.3)</option>
+          <option value="6.0">Walk 3.3–3.7 mph, brisk (6.0)</option>
+          <option value="7.3">Walk 4.0–4.2 mph, very brisk (7.3)</option>
+          <option value="7.0">Nordic walking (7.0)</option>
+          <option value="6.5">Stair climbing, fast (6.5)</option>
+          <option value="6.8">Mowing the lawn (6.8)</option>
+          <option value="6.0">Ballroom dancing (6.0)</option>
+          <option value="5.3">Pickleball, competitive (5.3)</option>
+          <option value="7.8">Stationary bike 101–160 W (7.8)</option>
         </select>
       </div>
       <div id="cardio-target" class="hidden">
@@ -122,9 +127,9 @@
       <div>
         <label for="scenario">Decline scenario</label>
         <select id="scenario">
-          <option value="0.75">Optimistic (0.75× rate)</option>
-          <option value="1" selected>Typical (1×)</option>
-          <option value="1.25">Pessimistic (1.25×)</option>
+          <option value="0.75">Slower than average (0.75× rate)</option>
+          <option value="1" selected>Average (1×)</option>
+          <option value="1.25">Faster than average (1.25×)</option>
         </select>
       </div>
     </div>
@@ -143,21 +148,46 @@
     <h2>Method &amp; sources</h2>
     <p class="note">
       Required now = goal ÷ Π(1 − rᵢ) over each year between your current and target age, where rᵢ is the
-      annual decline rate for that age and sex. Per-decade VO₂max rates are converted to annual rates by
-      r = 1 − (1 − d)<sup>1/10</sup>. Anchors come from the studies below; values between anchors are
-      interpolations and should be read as an estimate, not a prescription. Fleg et al. found the
-      accelerating decline occurred regardless of activity habits — fitter people stay ahead because they
-      start higher, which is exactly the point of training now.
+      annual decline rate for that age and sex. Strength rates are annual steps by decade. Values in between
+      are interpolations, so read the result as an estimate, not a prescription.
     </p>
     <p class="note">
-      <strong>Cardio:</strong> activity cost = METs × 3.5 ml/kg/min; required VO₂max = cost ÷ sustainable
-      fraction (an activity you want to keep up for more than a few minutes should sit well below your max).
+      <strong>VO₂max decline:</strong> per-decade rates are set at decade midpoints (25, 35 … 75), interpolated
+      linearly in between, and converted to annual rates by r = 1 − (1 − d)<sup>1/10</sup>. Men: 3, 6, 10, 14,
+      18, 25%/decade. Women: 3, 6, 9, 12, 15, 18%/decade. The ends come from the two large longitudinal
+      cohorts with directly measured VO₂ (BLSA [1], HUNT [2]), as pooled by Letnes et al. [3]: about 3%/decade
+      in the 20s, rising to 15–20% in women and 20–25% in men after 70, with men declining faster from the
+      40s onward. The mid-life values are interpolated. As a check, starting from typical young-adult values (45 ml/kg/min for men, 36 for women), from age 25 to 65 the curves lose about
+      0.39 ml/kg/min per year for men, against 0.40 in the cross-sectional meta-analysis [4]. For women they
+      lose about 0.28, against 0.35–0.44 [5], so the women's curve may be slightly optimistic in mid-life. The
+      meta-analyses report roughly linear absolute decline, which
+      means the <em>percentage</em> loss grows with age. We use longitudinal rather than cross-sectional data
+      because cross-sectional studies underestimate decline in old age through survivor bias [3].
+    </p>
+    <p class="note">
+      <strong>Does being fit slow the decline?</strong> Mostly not in percentage terms. Relative decline was
+      similar across sedentary, active and endurance-trained groups in both meta-analyses [4, 5], and across
+      activity quartiles in BLSA [1]. HUNT found that people who kept up vigorous activity held on to more
+      fitness [2]. Fitter people stay ahead mainly because they start higher, which is the point of training
+      now. The decline-scenario setting stands in for that variation between people.
+    </p>
+    <p class="note">
+      <strong>Cardio target:</strong> activity cost = MET₆₀₊ × 2.7 ml/kg/min, using the Older Adult Compendium
+      [6], which measured energy costs in people aged 60 and over against their lower resting metabolic rate.
+      Required VO₂max = cost ÷ sustainable fraction, because an activity you want to keep up for more than a few
+      minutes should sit well below your max. The "stay independent" preset uses the VO₂max levels below which
+      loss of independence becomes likely: 18 ml/kg/min for men and 15 for women [7].
     </p>
     <ol class="refs">
-      <li>Fleg JL et al. Accelerated longitudinal decline of aerobic capacity in healthy older adults. <em>Circulation</em> 2005;112:674–682. (Peak VO₂ decline rises from ~3–6%/decade in the 20s–30s to &gt;20%/decade after 70; 8.3%/decade in 40-year-old men, 23.2%/decade in 70-year-old men; steeper in men than women.)</li>
-      <li>Goodpaster BH et al. The loss of skeletal muscle strength, mass, and quality in older adults: the Health ABC Study. <em>J Gerontol A</em> 2006;61:1059–1064. (Knee-extensor strength loss in 70s: ~3.4%/yr men, ~2.6%/yr women.)</li>
-      <li>Lindle RS et al. Age and gender comparisons of muscle strength in 654 women and men aged 20–93 yr. <em>J Appl Physiol</em> 1997;83:1581–1587. (Strength loss begins in midlife and accelerates with age; used for pre-70 shape.)</li>
-      <li>Ainsworth BE et al. Compendium of Physical Activities. <em>Med Sci Sports Exerc</em> 2011;43:1575–1581 (and the 2024 update). (MET values for presets.)</li>
+      <li>Fleg JL et al. Accelerated longitudinal decline of aerobic capacity in healthy older adults. <em>Circulation</em> 2005;112:674–682. (Baltimore Longitudinal Study of Aging, n = 810, ages 21–87. Decline accelerates from 3–6%/decade in the 20s–30s to &gt;20%/decade in the 70s, is larger in men from the 40s, and is similar across activity levels.)</li>
+      <li>Letnes JM et al. Age-related change in peak oxygen uptake and change of cardiovascular risk factors. The HUNT Study. <em>Prog Cardiovasc Dis</em> 2020;63:730–737. (n = 1,431, directly measured VO₂peak 10 years apart. Decline goes from 3% in the 20s to about 20% in the 70s and is more pronounced in men.)</li>
+      <li>Letnes JM, Nes BM, Wisløff U. Age-related decline in peak oxygen uptake: cross-sectional vs. longitudinal findings. A review. <em>Int J Cardiol Cardiovasc Risk Prev</em> 2023;16:200171.</li>
+      <li>Wilson TM, Tanaka H. Meta-analysis of the age-associated decline in maximal aerobic capacity in men: relation to training status. <em>Am J Physiol Heart Circ Physiol</em> 2000;278:H829–H834. (242 studies, 13,828 men. −4.0 to −4.6 ml/kg/min per decade, no difference by training status.)</li>
+      <li>Fitzgerald MD et al. Age-related declines in maximal aerobic capacity in regularly exercising vs. sedentary women: a meta-analysis. <em>J Appl Physiol</em> 1997;83:160–165. (109 studies, 4,884 women. −3.5 to −6.2 ml/kg/min per decade, about −10%/decade relative to age 25 in every group.)</li>
+      <li>Willis EA et al. Older Adult Compendium of Physical Activities: energy costs of human activities in adults aged 60 and older. <em>J Sport Health Sci</em> 2024;13:13–17. (MET₆₀₊ values for the presets.)</li>
+      <li>Shephard RJ. Maximal oxygen intake and independence in old age. <em>Br J Sports Med</em> 2009;43:342–346.</li>
+      <li>Goodpaster BH et al. The loss of skeletal muscle strength, mass, and quality in older adults: the Health ABC Study. <em>J Gerontol A</em> 2006;61:1059–1064. (Knee-extensor strength loss in the 70s: ~3.4%/yr in men, ~2.6%/yr in women.)</li>
+      <li>Lindle RS et al. Age and gender comparisons of muscle strength in 654 women and men aged 20–93 yr. <em>J Appl Physiol</em> 1997;83:1581–1587. (Strength loss begins in midlife and accelerates with age. Used for the pre-70 shape.)</li>
       <li>Mandsager K et al. Association of cardiorespiratory fitness with long-term mortality. <em>JAMA Netw Open</em> 2018;1:e183605. (Cited in <em>Outlive</em> for the importance of VO₂max.)</li>
     </ol>
   </section>
@@ -166,16 +196,21 @@
 <script>
 "use strict";
 
-// Decline anchors. Each entry: [ageFrom, ageTo, rate].
-// Strength: annual fractional loss. VO2max: per-decade fractional loss.
+// Strength: annual fractional loss, stepped by age band [ageFrom, ageTo, rate].
 const STRENGTH_ANNUAL = {
   m: [[0, 40, 0.0], [40, 50, 0.005], [50, 60, 0.01], [60, 70, 0.02], [70, 200, 0.034]],
   f: [[0, 40, 0.0], [40, 50, 0.004], [50, 60, 0.008], [60, 70, 0.016], [70, 200, 0.026]],
 };
+// VO2max: per-decade fractional loss at decade midpoints [age, rate], linearly interpolated.
+// Longitudinal BLSA (Fleg 2005) + HUNT (Letnes 2020), as summarised by Letnes et al. 2023.
 const VO2_DECADE = {
-  m: [[0, 40, 0.05], [40, 50, 0.083], [50, 60, 0.13], [60, 70, 0.18], [70, 200, 0.232]],
-  f: [[0, 40, 0.04], [40, 50, 0.07], [50, 60, 0.10], [60, 70, 0.14], [70, 200, 0.20]],
+  m: [[25, 0.03], [35, 0.06], [45, 0.10], [55, 0.14], [65, 0.18], [75, 0.25]],
+  f: [[25, 0.03], [35, 0.06], [45, 0.09], [55, 0.12], [65, 0.15], [75, 0.18]],
 };
+// Older Adult Compendium: 1 MET60+ = 2.7 ml/kg/min (Willis 2024).
+const ML_PER_MET60 = 2.7;
+// Shephard 2009: VO2max below which independence is at risk.
+const INDEPENDENCE_VO2 = { m: 18, f: 15 };
 
 let mode = "strength";
 const $ = (id) => document.getElementById(id);
@@ -185,9 +220,19 @@ function lookup(table, age) {
   return table[table.length - 1][2];
 }
 
+function interpolate(points, age) {
+  if (age <= points[0][0]) return points[0][1];
+  for (let i = 1; i < points.length; i++) {
+    const [a0, r0] = points[i - 1], [a1, r1] = points[i];
+    if (age <= a1) return r0 + (r1 - r0) * (age - a0) / (a1 - a0);
+  }
+  return points[points.length - 1][1];
+}
+
 function annualRate(age, sex, scale) {
   if (mode === "strength") return Math.min(0.99, lookup(STRENGTH_ANNUAL[sex], age) * scale);
-  const d = Math.min(0.99, lookup(VO2_DECADE[sex], age) * scale);
+  // Rate at the midpoint of the year being stepped through.
+  const d = Math.min(0.99, interpolate(VO2_DECADE[sex], age + 0.5) * scale);
   return 1 - Math.pow(1 - d, 0.1);
 }
 
@@ -209,10 +254,15 @@ function readTarget() {
 }
 
 function syncCardioTarget() {
-  const mets = +$("preset-c").value;
+  const preset = $("preset-c").value;
+  if (preset === "indep") {
+    $("target-vo2").value = INDEPENDENCE_VO2[$("sex").value];
+    return;
+  }
+  const mets = +preset;
   if (!mets) return;
   const frac = Math.max(0.3, Math.min(1, +$("frac").value / 100));
-  $("target-vo2").value = (mets * 3.5 / frac).toFixed(1);
+  $("target-vo2").value = (mets * ML_PER_MET60 / frac).toFixed(1);
 }
 
 function fmt(x, unit) {
@@ -325,6 +375,7 @@ $("preset-c").addEventListener("change", () => { syncCardioTarget(); render(); }
 $("frac").addEventListener("input", () => { syncCardioTarget(); render(); });
 $("target-kg").addEventListener("input", () => { $("preset-s").value = ""; render(); });
 $("target-vo2").addEventListener("input", () => { $("preset-c").value = ""; render(); });
+$("sex").addEventListener("change", syncCardioTarget);
 for (const id of ["age", "target-age", "sex", "scenario"]) {
   $(id).addEventListener("input", render);
   $(id).addEventListener("change", render);
