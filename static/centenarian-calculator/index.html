@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centenarian Decathlon Calculator</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a65;
+    --line: #e2e0d8; --accent: #2f6f5e; --accent2: #c0603a; --soft: #eef3f1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141513; --card: #1d1f1c; --ink: #ecebe6; --muted: #9c9b94;
+      --line: #2f322d; --accent: #6cc2a6; --accent2: #e98a62; --soft: #22302b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 0 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 18px; margin-bottom: 16px;
+  }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tabs button {
+    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink); font-weight: 600; cursor: pointer;
+  }
+  .tabs button[aria-pressed="true"] {
+    background: var(--accent); border-color: var(--accent); color: var(--card);
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
+  input, select {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink); font: inherit;
+  }
+  .hidden { display: none; }
+  .result { font-size: 1.05rem; }
+  .big { font-size: 2.2rem; font-weight: 700; color: var(--accent); line-height: 1.1; }
+  .pill {
+    display: inline-block; background: var(--soft); color: var(--accent);
+    border-radius: 999px; padding: 2px 10px; font-size: .85rem; font-weight: 600;
+  }
+  canvas { width: 100%; height: 280px; display: block; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: right; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  .note { font-size: .82rem; color: var(--muted); }
+  ol.refs { padding-left: 20px; font-size: .82rem; color: var(--muted); }
+  ol.refs li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Centenarian Decathlon Calculator</h1>
+  <p class="sub">What do you need to be able to do <em>now</em> to still do it at 80? Based on longitudinal ageing data in the spirit of Peter Attia's <em>Outlive</em>.</p>
+
+  <div class="tabs" role="group" aria-label="Mode">
+    <button id="tab-strength" aria-pressed="true">Strength</button>
+    <button id="tab-cardio" aria-pressed="false">Cardio (VO₂max)</button>
+  </div>
+
+  <section class="card">
+    <h2>Your goal</h2>
+    <div class="grid">
+      <div id="strength-inputs">
+        <label for="preset-s">Preset</label>
+        <select id="preset-s">
+          <option value="">Custom</option>
+          <option value="15">Pick up a 15 kg grandchild</option>
+          <option value="20">Carry two 10 kg grocery bags</option>
+          <option value="12">Lift a 12 kg bag into an overhead bin</option>
+          <option value="30">Deadlift 30 kg</option>
+        </select>
+      </div>
+      <div id="strength-target">
+        <label for="target-kg">Load at target age (kg)</label>
+        <input id="target-kg" type="number" min="1" step="0.5" value="20">
+      </div>
+      <div id="cardio-inputs" class="hidden">
+        <label for="preset-c">Activity (METs)</label>
+        <select id="preset-c">
+          <option value="">Custom</option>
+          <option value="4.3">Brisk walk, 3.5 mph (4.3)</option>
+          <option value="6.0">Hiking, cross-country (6.0)</option>
+          <option value="8.8">Climbing stairs, fast (8.8)</option>
+          <option value="8.0">Cycling 12–14 mph (8.0)</option>
+          <option value="8.0">Tennis, singles (8.0)</option>
+        </select>
+      </div>
+      <div id="cardio-target" class="hidden">
+        <label for="target-vo2">Required VO₂max at target age (ml/kg/min)</label>
+        <input id="target-vo2" type="number" min="5" step="0.5" value="25">
+      </div>
+      <div id="cardio-frac" class="hidden">
+        <label for="frac">Sustainable % of VO₂max</label>
+        <input id="frac" type="number" min="30" max="100" step="5" value="60">
+      </div>
+      <div>
+        <label for="target-age">Target age</label>
+        <input id="target-age" type="number" min="40" max="100" value="80">
+      </div>
+      <div>
+        <label for="age">Current age</label>
+        <input id="age" type="number" min="18" max="99" value="55">
+      </div>
+      <div>
+        <label for="sex">Sex</label>
+        <select id="sex">
+          <option value="m">Male</option>
+          <option value="f">Female</option>
+        </select>
+      </div>
+      <div>
+        <label for="scenario">Decline scenario</label>
+        <select id="scenario">
+          <option value="0.75">Optimistic (0.75× rate)</option>
+          <option value="1" selected>Typical (1×)</option>
+          <option value="1.25">Pessimistic (1.25×)</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="card result" id="result"></section>
+
+  <section class="card">
+    <h2>Required level by age</h2>
+    <canvas id="chart" aria-label="Decline curve"></canvas>
+    <p class="note">Line: capacity you need at each age so that natural decline lands exactly on your goal at the target age.</p>
+    <table id="table"></table>
+  </section>
+
+  <section class="card">
+    <h2>Method &amp; sources</h2>
+    <p class="note">
+      Required now = goal ÷ Π(1 − rᵢ) over each year between your current and target age, where rᵢ is the
+      annual decline rate for that age and sex. Per-decade VO₂max rates are converted to annual rates by
+      r = 1 − (1 − d)<sup>1/10</sup>. Anchors come from the studies below; values between anchors are
+      interpolations and should be read as an estimate, not a prescription. Fleg et al. found the
+      accelerating decline occurred regardless of activity habits — fitter people stay ahead because they
+      start higher, which is exactly the point of training now.
+    </p>
+    <p class="note">
+      <strong>Cardio:</strong> activity cost = METs × 3.5 ml/kg/min; required VO₂max = cost ÷ sustainable
+      fraction (an activity you want to keep up for more than a few minutes should sit well below your max).
+    </p>
+    <ol class="refs">
+      <li>Fleg JL et al. Accelerated longitudinal decline of aerobic capacity in healthy older adults. <em>Circulation</em> 2005;112:674–682. (Peak VO₂ decline rises from ~3–6%/decade in the 20s–30s to &gt;20%/decade after 70; 8.3%/decade in 40-year-old men, 23.2%/decade in 70-year-old men; steeper in men than women.)</li>
+      <li>Goodpaster BH et al. The loss of skeletal muscle strength, mass, and quality in older adults: the Health ABC Study. <em>J Gerontol A</em> 2006;61:1059–1064. (Knee-extensor strength loss in 70s: ~3.4%/yr men, ~2.6%/yr women.)</li>
+      <li>Lindle RS et al. Age and gender comparisons of muscle strength in 654 women and men aged 20–93 yr. <em>J Appl Physiol</em> 1997;83:1581–1587. (Strength loss begins in midlife and accelerates with age; used for pre-70 shape.)</li>
+      <li>Ainsworth BE et al. Compendium of Physical Activities. <em>Med Sci Sports Exerc</em> 2011;43:1575–1581 (and the 2024 update). (MET values for presets.)</li>
+      <li>Mandsager K et al. Association of cardiorespiratory fitness with long-term mortality. <em>JAMA Netw Open</em> 2018;1:e183605. (Cited in <em>Outlive</em> for the importance of VO₂max.)</li>
+    </ol>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+// Decline anchors. Each entry: [ageFrom, ageTo, rate].
+// Strength: annual fractional loss. VO2max: per-decade fractional loss.
+const STRENGTH_ANNUAL = {
+  m: [[0, 40, 0.0], [40, 50, 0.005], [50, 60, 0.01], [60, 70, 0.02], [70, 200, 0.034]],
+  f: [[0, 40, 0.0], [40, 50, 0.004], [50, 60, 0.008], [60, 70, 0.016], [70, 200, 0.026]],
+};
+const VO2_DECADE = {
+  m: [[0, 40, 0.05], [40, 50, 0.083], [50, 60, 0.13], [60, 70, 0.18], [70, 200, 0.232]],
+  f: [[0, 40, 0.04], [40, 50, 0.07], [50, 60, 0.10], [60, 70, 0.14], [70, 200, 0.20]],
+};
+
+let mode = "strength";
+const $ = (id) => document.getElementById(id);
+
+function lookup(table, age) {
+  for (const [lo, hi, r] of table) if (age >= lo && age < hi) return r;
+  return table[table.length - 1][2];
+}
+
+function annualRate(age, sex, scale) {
+  if (mode === "strength") return Math.min(0.99, lookup(STRENGTH_ANNUAL[sex], age) * scale);
+  const d = Math.min(0.99, lookup(VO2_DECADE[sex], age) * scale);
+  return 1 - Math.pow(1 - d, 0.1);
+}
+
+// Fraction of capacity retained from `fromAge` to `toAge` (fractional years handled).
+function retention(fromAge, toAge, sex, scale) {
+  let keep = 1;
+  let a = fromAge;
+  while (a < toAge - 1e-9) {
+    const step = Math.min(1, toAge - a);
+    keep *= Math.pow(1 - annualRate(a, sex, scale), step);
+    a += step;
+  }
+  return keep;
+}
+
+function readTarget() {
+  if (mode === "strength") return { value: +$("target-kg").value, unit: "kg" };
+  return { value: +$("target-vo2").value, unit: "ml/kg/min" };
+}
+
+function syncCardioTarget() {
+  const mets = +$("preset-c").value;
+  if (!mets) return;
+  const frac = Math.max(0.3, Math.min(1, +$("frac").value / 100));
+  $("target-vo2").value = (mets * 3.5 / frac).toFixed(1);
+}
+
+function fmt(x, unit) {
+  return unit === "kg" ? x.toFixed(1) : x.toFixed(1);
+}
+
+function render() {
+  const age = +$("age").value;
+  const tAge = +$("target-age").value;
+  const sex = $("sex").value;
+  const scale = +$("scenario").value;
+  const { value, unit } = readTarget();
+  const res = $("result");
+
+  if (!(value > 0) || !(age >= 18) || !(tAge > age)) {
+    res.innerHTML = "<p>Enter a goal above zero and a target age later than your current age.</p>";
+    drawChart([]); $("table").innerHTML = "";
+    return;
+  }
+
+  const keep = retention(age, tAge, sex, scale);
+  const need = value / keep;
+  const pct = (need / value - 1) * 100;
+  const what = mode === "strength" ? "lift" : "have a VO₂max of";
+
+  res.innerHTML = `
+    <div class="pill">${mode === "strength" ? "Strength" : "Cardio"} · ${sex === "m" ? "male" : "female"}, age ${age}</div>
+    <p>To ${what} <strong>${fmt(value, unit)} ${unit}</strong> at ${tAge}, you need to ${what} today:</p>
+    <div class="big">${fmt(need, unit)} ${unit}</div>
+    <p class="note">That's ${pct.toFixed(0)}% above your goal; you'd expect to keep ~${(keep * 100).toFixed(0)}% of today's capacity by ${tAge}.
+    ${mode === "strength" ? "Treat this as a working-load ability, not a one-off max." : ""}</p>`;
+
+  const pts = [];
+  for (let a = age; a <= tAge + 1e-9; a += 1) pts.push([a, value / retention(a, tAge, sex, scale)]);
+  if (pts[pts.length - 1][0] !== tAge) pts.push([tAge, value]);
+  drawChart(pts, unit);
+
+  const rows = [];
+  const marks = new Set([age, tAge]);
+  for (let a = Math.ceil(age / 5) * 5; a < tAge; a += 5) marks.add(a);
+  [...marks].sort((x, y) => x - y).forEach((a) => {
+    const v = value / retention(a, tAge, sex, scale);
+    rows.push(`<tr><td>${a}</td><td>${fmt(v, unit)} ${unit}</td><td>${((v / value - 1) * 100).toFixed(0)}%</td></tr>`);
+  });
+  $("table").innerHTML = `<tr><th>Age</th><th>Needed</th><th>Above goal</th></tr>${rows.join("")}`;
+}
+
+function drawChart(pts, unit) {
+  const c = $("chart");
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth, h = c.clientHeight;
+  c.width = w * dpr; c.height = h * dpr;
+  const ctx = c.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  if (pts.length < 2) return;
+
+  const css = getComputedStyle(document.documentElement);
+  const ink = css.getPropertyValue("--muted").trim();
+  const line = css.getPropertyValue("--line").trim();
+  const acc = css.getPropertyValue("--accent").trim();
+  const acc2 = css.getPropertyValue("--accent2").trim();
+
+  const pad = { l: 46, r: 14, t: 14, b: 30 };
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const yMax = Math.max(...ys) * 1.1, yMin = 0;
+  const X = (x) => pad.l + (x - x0) / (x1 - x0) * (w - pad.l - pad.r);
+  const Y = (y) => h - pad.b - (y - yMin) / (yMax - yMin) * (h - pad.t - pad.b);
+
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.fillStyle = ink; ctx.strokeStyle = line; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const yv = yMin + (yMax - yMin) * i / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, Y(yv)); ctx.lineTo(w - pad.r, Y(yv)); ctx.stroke();
+    ctx.textAlign = "right"; ctx.fillText(yv.toFixed(0), pad.l - 6, Y(yv) + 4);
+  }
+  const span = x1 - x0, stepX = span > 30 ? 10 : 5;
+  ctx.textAlign = "center";
+  for (let a = Math.ceil(x0 / stepX) * stepX; a <= x1; a += stepX) ctx.fillText(String(a), X(a), h - 10);
+
+  const goal = pts[pts.length - 1][1];
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = acc2;
+  ctx.beginPath(); ctx.moveTo(pad.l, Y(goal)); ctx.lineTo(w - pad.r, Y(goal)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = acc2; ctx.textAlign = "left";
+  ctx.fillText(`goal ${goal.toFixed(1)} ${unit}`, pad.l + 4, Y(goal) - 6);
+
+  ctx.strokeStyle = acc; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))));
+  ctx.stroke();
+  ctx.fillStyle = acc;
+  ctx.beginPath(); ctx.arc(X(pts[0][0]), Y(pts[0][1]), 4, 0, Math.PI * 2); ctx.fill();
+}
+
+function setMode(m) {
+  mode = m;
+  $("tab-strength").setAttribute("aria-pressed", String(m === "strength"));
+  $("tab-cardio").setAttribute("aria-pressed", String(m === "cardio"));
+  for (const id of ["strength-inputs", "strength-target"]) $(id).classList.toggle("hidden", m !== "strength");
+  for (const id of ["cardio-inputs", "cardio-target", "cardio-frac"]) $(id).classList.toggle("hidden", m !== "cardio");
+  render();
+}
+
+$("tab-strength").addEventListener("click", () => setMode("strength"));
+$("tab-cardio").addEventListener("click", () => setMode("cardio"));
+$("preset-s").addEventListener("change", (e) => { if (e.target.value) $("target-kg").value = e.target.value; render(); });
+$("preset-c").addEventListener("change", () => { syncCardioTarget(); render(); });
+$("frac").addEventListener("input", () => { syncCardioTarget(); render(); });
+$("target-kg").addEventListener("input", () => { $("preset-s").value = ""; render(); });
+$("target-vo2").addEventListener("input", () => { $("preset-c").value = ""; render(); });
+for (const id of ["age", "target-age", "sex", "scenario"]) {
+  $(id).addEventListener("input", render);
+  $(id).addEventListener("change", render);
+}
+window.addEventListener("resize", render);
+render();
+</script>
+</body>
+</html>
