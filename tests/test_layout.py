@@ -1,22 +1,23 @@
 """Layout checks: render the built site in headless Chromium at several viewports.
 
-Run with `just test-layout`. Full-page screenshots land in .layout-screenshots/ for a
-once-over by eye; the assertions below are the part that decides pass/fail.
+Run with `just test-layout`. Only failing pages are captured in .layout-screenshots/;
+pass --layout-screenshots to capture every page for a once-over by eye.
 """
 
 from __future__ import annotations
 
 import functools
 import http.server
-import re
+import shutil
 import threading
+import warnings
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import Page
+from playwright.sync_api import Error, Page
 
-import build
+pytestmark = pytest.mark.layout
 
 ROOT = Path(__file__).parent.parent
 SCREENSHOTS = ROOT / ".layout-screenshots"
@@ -62,13 +63,6 @@ MEASURE_TEXT = """() => {
 
 
 @pytest.fixture(scope="session")
-def site(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    out = tmp_path_factory.mktemp("site")
-    assert build.build(out, strict=False, future=False) == 0
-    return out
-
-
-@pytest.fixture(scope="session")
 def site_url(site: Path) -> Iterator[str]:
     class QuietHandler(http.server.SimpleHTTPRequestHandler):
         def log_message(self, *args: object) -> None:
@@ -76,18 +70,34 @@ def site_url(site: Path) -> Iterator[str]:
 
     handler = functools.partial(QuietHandler, directory=site)
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    yield f"http://127.0.0.1:{server.server_port}"
-    server.shutdown()
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_port}"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
 
 
 @pytest.fixture(scope="session")
 def all_paths(site: Path) -> list[str]:
-    """Every HTML page in the sitemap, plus the talks list the sitemap leaves out."""
-    sitemap = (site / "sitemap.xml").read_text(encoding="utf-8")
-    urls = re.findall(r"<loc>([^<]+)</loc>", sitemap)
-    paths = [url.removeprefix(build.SITE_URL) for url in urls]
-    return [p for p in paths if not p.endswith(".pdf")] + ["/talks/"]
+    """Include unlisted static pages as well as generated posts and lists."""
+    paths = [
+        "/" + path.relative_to(site).as_posix().removesuffix("index.html")
+        for path in sorted(site.rglob("index.html"))
+    ]
+    # Renaming a representative page must not silently remove its geometry checks.
+    assert {INDEX, PROSE, NOTE, IMAGES} <= set(paths)
+    return paths
+
+
+@pytest.fixture(scope="session")
+def screenshot_dir() -> Path:
+    # A passing run should not leave stale failure evidence from a previous run.
+    if SCREENSHOTS.exists():
+        shutil.rmtree(SCREENSHOTS)
+    return SCREENSHOTS
 
 
 @pytest.fixture(params=VIEWPORTS, ids=list(VIEWPORTS))
@@ -96,64 +106,82 @@ def viewport(request: pytest.FixtureRequest, page: Page) -> str:
     return request.param
 
 
-def test_no_horizontal_scroll(
-    page: Page, viewport: str, site_url: str, all_paths: list[str]
+def test_layout(
+    page: Page,
+    viewport: str,
+    site_url: str,
+    all_paths: list[str],
+    screenshot_dir: Path,
+    subtests: pytest.Subtests,
+    request: pytest.FixtureRequest,
 ) -> None:
-    overflowing = []
+    """Visit each page once per width; subtests report failures without ending the sweep.
+
+    Geometry needs a real rendering engine. Keep checks for the same page together
+    instead of creating another context and reloading its images for every assertion.
+    """
     for path in all_paths:
-        page.goto(site_url + path)
-        scroll = page.evaluate("document.documentElement.scrollWidth")
-        if scroll > VIEWPORTS[viewport]:
-            overflowing.append(f"{path} ({scroll}px)")
-        name = path.strip("/").replace("/", "_") or "index"
-        page.screenshot(path=SCREENSHOTS / viewport / f"{name}.png", full_page=True)
-    assert not overflowing, f"pages wider than the {viewport} viewport: {overflowing}"
+        with subtests.test(path=path):
+            failed = False
+            try:
+                # The load event waits for images whose dimensions affect layout.
+                response = page.goto(site_url + path, wait_until="load")
+                assert response is not None and response.ok, f"could not load {path}"
+                scroll = page.evaluate("document.documentElement.scrollWidth")
+                assert scroll <= VIEWPORTS[viewport], f"page is {scroll}px wide"
+
+                if path in (INDEX, PROSE, NOTE, IMAGES):
+                    text = page.evaluate(MEASURE_TEXT)
+                    if path in (INDEX, PROSE, NOTE):
+                        assert_line_length_is_readable(text, viewport)
+                    if path in (INDEX, PROSE) and viewport in WIDE:
+                        assert text["width"] >= MIN_COLUMN[viewport], (
+                            f"text column is {text['width']:.0f}px wide"
+                        )
+                    if path == PROSE:
+                        assert_font_size_scales(page, viewport)
+                        if viewport == "phone":
+                            assert_phone_gutters(text)
+                    if path == INDEX:
+                        assert_post_list_keeps_dates_next_to_titles(page)
+                    if path == IMAGES and viewport in WIDE:
+                        assert_images_break_out_on_wide_screens(page, text["width"])
+                    if path in (IMAGES, PROSE):
+                        assert_images_and_captions_are_centred_on_the_text(page, text)
+            except Exception:
+                failed = True
+                raise
+            finally:
+                if failed or request.config.getoption("--layout-screenshots"):
+                    name = path.strip("/").replace("/", "_") or "index"
+                    try:
+                        page.screenshot(
+                            path=screenshot_dir / viewport / f"{name}.png",
+                            full_page=True,
+                        )
+                    except Error as exc:
+                        # Preserve the original error if navigation or Chromium failed.
+                        warnings.warn(f"Could not capture {path}: {exc}", stacklevel=1)
 
 
-@pytest.mark.parametrize("path", [INDEX, PROSE, NOTE])
-def test_line_length_is_readable(
-    page: Page, viewport: str, site_url: str, path: str
-) -> None:
-    page.goto(site_url + path)
-    chars = page.evaluate(MEASURE_TEXT)["chars"]
+def assert_line_length_is_readable(text: dict, viewport: str) -> None:
+    chars = text["chars"]
     floor = MIN_CHARS_PHONE if viewport == "phone" else MIN_CHARS
     assert floor <= chars <= MAX_CHARS, f"{chars:.0f} characters per line"
 
 
-@pytest.mark.parametrize("path", [INDEX, PROSE])
-def test_text_column_uses_wide_screens(
-    page: Page, viewport: str, site_url: str, path: str
-) -> None:
-    if viewport not in WIDE:
-        pytest.skip("only wide screens have room to spare")
-    page.goto(site_url + path)
-    width = page.evaluate(MEASURE_TEXT)["width"]
-    assert width >= MIN_COLUMN[viewport], f"text column is {width:.0f}px wide"
-
-
-def test_font_size_scales(page: Page, viewport: str, site_url: str) -> None:
-    page.goto(site_url + PROSE)
+def assert_font_size_scales(page: Page, viewport: str) -> None:
     size = float(page.evaluate("parseFloat(getComputedStyle(document.body).fontSize)"))
     assert MIN_FONT[viewport] <= size <= MAX_FONT, f"body font is {size}px"
 
 
-def test_phone_gutters(page: Page, viewport: str, site_url: str) -> None:
-    if viewport != "phone":
-        pytest.skip("gutters only matter on phones")
-    page.goto(site_url + PROSE)
-    text = page.evaluate(MEASURE_TEXT)
+def assert_phone_gutters(text: dict) -> None:
     low, high = PHONE_GUTTER
     assert low <= text["left"] <= high, f"left gutter is {text['left']:.0f}px"
     assert low <= text["right"] <= high, f"right gutter is {text['right']:.0f}px"
 
 
-def test_images_break_out_on_wide_screens(
-    page: Page, viewport: str, site_url: str
-) -> None:
-    if viewport not in WIDE:
-        pytest.skip("narrow screens have no room for images to break out")
-    page.goto(site_url + IMAGES)
-    column = page.evaluate(MEASURE_TEXT)["width"]
+def assert_images_break_out_on_wide_screens(page: Page, column: float) -> None:
     images = page.evaluate(
         "[...document.querySelectorAll('main img')]"
         ".map(i => ({src: i.src, width: i.getBoundingClientRect().width, natural: i.naturalWidth}))"
@@ -166,11 +194,8 @@ def test_images_break_out_on_wide_screens(
         )
 
 
-def test_post_list_keeps_dates_next_to_titles(
-    page: Page, viewport: str, site_url: str
-) -> None:
+def assert_post_list_keeps_dates_next_to_titles(page: Page) -> None:
     """A date sits beside its title, or directly above it on narrow screens."""
-    page.goto(site_url + INDEX)
     gaps = page.evaluate(
         "[...document.querySelectorAll('ul.posts li')].map(li => {"
         "  const range = document.createRange();"
@@ -183,12 +208,7 @@ def test_post_list_keeps_dates_next_to_titles(
     assert max(gaps) < 1, f"title sits {max(gaps):.1f} date-heights below its date"
 
 
-@pytest.mark.parametrize("path", [IMAGES, PROSE])
-def test_images_and_captions_are_centred_on_the_text(
-    page: Page, viewport: str, site_url: str, path: str
-) -> None:
-    page.goto(site_url + path)
-    text = page.evaluate(MEASURE_TEXT)
+def assert_images_and_captions_are_centred_on_the_text(page: Page, text: dict) -> None:
     centre = text["left"] + text["width"] / 2
     figures = page.evaluate(
         "[...document.querySelectorAll('main p > img:first-child')].map(img => {"
@@ -200,7 +220,7 @@ def test_images_and_captions_are_centred_on_the_text(
         "  };"
         "})"
     )
-    assert figures, f"{path} has no images to check"
+    assert figures, f"{page.url} has no images to check"
     for figure in figures:
         assert abs(figure["centre"] - centre) <= 2, f"{figure['src']} is off-centre"
         if figure["caption"] is not None:

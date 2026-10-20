@@ -8,8 +8,9 @@ would add more than this needed, and build.py's validation would have to be redo
 ## 0. Layout tests (done)
 
 `just test-layout` builds the site, serves it, and checks it in headless Chromium at 375 /
-768 / 1280 / 1920px ([tests/test_layout.py](../tests/test_layout.py)). Screenshots go to
-`.layout-screenshots/`.
+768 / 1280 / 1920px ([tests/test_layout.py](../tests/test_layout.py)). Failure screenshots go
+to `.layout-screenshots/`; pass `--layout-screenshots` to capture every page. Checks share
+one visit per page and width. Generator rules run separately with `just test`.
 
 | Test | Pass condition | Before | After |
 | --- | --- | --- | --- |

@@ -15,8 +15,19 @@ just dev      # build, serve on :8000, rebuild on change (--future: show schedul
 just build    # write _site/
 just fmt      # format Python and markdown in place
 just check    # fail on anything malformed — CI runs exactly this
+just test     # fast generator unit tests; no browser needed
+just test-layout   # layout checks in Chromium at four viewport widths
 just check-links   # verify outbound links still resolve (slow, network-dependent)
 ```
+
+`just check` includes the unit tests. Layout tests run in a separate CI job; install
+Chromium's headless shell once with `uv run playwright install --only-shell chromium`
+before running them locally. CI also installs only this headless browser.
+They visit every built HTML page at each width, checking overflow and the relevant
+typography, spacing, and image geometry during the same visit. Screenshots are saved
+to `.layout-screenshots/` only when a page fails. Use
+`just test-layout --layout-screenshots` to capture every page for visual review, or
+`just test-layout --durations=10` to see timings. Pass pytest flags to either test command.
 
 ## Publishing a post
 

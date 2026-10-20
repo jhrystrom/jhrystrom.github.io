@@ -31,8 +31,14 @@ check:
     uv run ruff format --check .
     uv run ruff check .
     uv run mdformat --check content/
+    just test
+
+# Generator unit tests; no browser installation needed.
+test *flags:
+    uv run pytest -m 'not layout' {{flags}}
 
 # Render the site in headless Chromium at phone-to-desktop widths and check the layout.
-# Screenshots land in .layout-screenshots/. First run: `uv run playwright install chromium`.
+# Failure screenshots land in .layout-screenshots/; --layout-screenshots captures all pages.
+# First run: `uv run playwright install --only-shell chromium`.
 test-layout *flags:
-    uv run pytest {{flags}}
+    uv run pytest -m layout {{flags}}

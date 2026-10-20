@@ -21,3 +21,4 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = ["layout: requires Chromium to check rendered page geometry"]
