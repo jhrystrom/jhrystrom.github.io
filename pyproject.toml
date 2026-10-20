@@ -13,5 +13,11 @@ dev = [
     "mdformat>=1.0.0",
     "mdformat-frontmatter>=2.1.2",
     "pre-commit>=4.4.0",
+    "pytest>=9.1.1",
+    "pytest-playwright>=0.10.0",
     "ruff>=0.16.6",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

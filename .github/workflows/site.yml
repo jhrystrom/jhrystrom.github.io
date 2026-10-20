@@ -20,8 +20,25 @@ jobs:
       - uses: extractions/setup-just@v4
       - run: just check
 
+  # Separate job so the ~100MB browser download never slows `just check`.
+  layout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+      - uses: extractions/setup-just@v4
+      - run: uv run playwright install --with-deps chromium
+      - run: just test-layout
+      - if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: layout-screenshots
+          path: .layout-screenshots/
+
   deploy:
-    needs: check
+    needs: [check, layout]
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:

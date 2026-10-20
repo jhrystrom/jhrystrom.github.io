@@ -5,6 +5,11 @@
   --link: #1c53a8;
   --rule: #e2e2df;
   --note-bg: #eef2f8;
+  /* Text column: ~70 characters per line at any font size, since rem scales with the root. */
+  --measure: 35rem;
+  /* Images and code may break out of the text column up to this width. */
+  --wide: 48rem;
+  --gutter: 1.25rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -26,15 +31,16 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* ~17px on phones, growing to 22px on large monitors. */
+  font-size: clamp(1.0625rem, 0.95rem + 0.35vw, 1.375rem);
 }
 
 body {
-  margin: 0 auto;
-  padding: 3rem 1.25rem 4rem;
-  max-width: 36rem;
+  margin: 0;
+  padding: 3rem 0 4rem;
   background: var(--bg);
   color: var(--fg);
-  font: 18px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+  font: 1rem/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -42,6 +48,61 @@ body {
 
 a {
   color: var(--link);
+}
+
+header.site,
+footer.site {
+  width: min(100% - 2 * var(--gutter), var(--measure));
+  margin-inline: auto;
+}
+
+/* Text sits in the content track; images and code may use the wider tracks either side. */
+main {
+  display: grid;
+  grid-template-columns:
+    [wide-start] minmax(0, 1fr)
+    [content-start] min(100%, var(--measure))
+    [content-end] minmax(0, 1fr)
+    [wide-end];
+  width: min(100% - 2 * var(--gutter), var(--wide));
+  margin-inline: auto;
+  overflow-wrap: anywhere;
+}
+
+main > *,
+main > article > * {
+  grid-column: content;
+}
+
+main > article {
+  grid-column: wide;
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+:is(main, article) > :is(pre, table, p:has(> img:first-child)) {
+  grid-column: wide;
+}
+
+/* An image with its caption below, both centred on the text column. */
+p:has(> img:first-child) {
+  text-align: center;
+}
+
+p > img:first-child {
+  display: block;
+  margin-inline: auto;
+}
+
+p:has(> img:first-child) > em {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
 }
 
 h1,
@@ -128,7 +189,7 @@ hr {
 }
 
 header.site {
-  margin-bottom: 2.5rem;
+  margin-block: 0 2.5rem;
   font-weight: 600;
 }
 
@@ -144,7 +205,7 @@ footer.site a:hover {
 }
 
 footer.site {
-  margin-top: 3.5rem;
+  margin-block: 3.5rem 0;
   padding-top: 1rem;
   border-top: 1px solid var(--rule);
   color: var(--muted);
@@ -178,14 +239,6 @@ ul.posts .translation {
   white-space: nowrap;
 }
 
-@media (max-width: 32rem) {
-  ul.posts li {
-    flex-direction: column;
-    gap: 0.1rem;
-    margin-bottom: 1rem;
-  }
-}
-
 header.site h1 {
   font-size: 1.55rem;
   margin: 0;
@@ -201,6 +254,16 @@ header.site h1 {
 }
 
 @media (max-width: 32rem) {
+  ul.posts li {
+    flex-direction: column;
+    gap: 0.1rem;
+    margin-bottom: 1rem;
+  }
+
+  ul.posts time {
+    flex-basis: auto;
+  }
+
   .portrait {
     float: none;
     display: block;

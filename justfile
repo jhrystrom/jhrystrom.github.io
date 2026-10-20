@@ -31,3 +31,8 @@ check:
     uv run ruff format --check .
     uv run ruff check .
     uv run mdformat --check content/
+
+# Render the site in headless Chromium at phone-to-desktop widths and check the layout.
+# Screenshots land in .layout-screenshots/. First run: `uv run playwright install chromium`.
+test-layout *flags:
+    uv run pytest {{flags}}

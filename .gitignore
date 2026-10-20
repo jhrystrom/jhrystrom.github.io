@@ -3,3 +3,6 @@ _site/
 .DS_Store
 .ruff_cache/
 .venv/
+.layout-screenshots/
+.pytest_cache/
+__pycache__/
