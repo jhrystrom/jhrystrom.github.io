@@ -21,8 +21,9 @@ dev *flags: (build flags)
     python3 -m http.server 8000 --directory _site
 
 # Encrypt private/<name>.html into content/locked/<name>.json, served at /p/<name>/.
-encrypt name:
-    uv run encrypt.py {{name}}
+# Keeps the existing password; `just encrypt <name> --new-password` replaces it.
+encrypt name *flags:
+    uv run encrypt.py {{name}} {{flags}}
 
 # Write private/<name>-qr.png, a link that opens /p/<name>/ with the password filled in.
 qr name:

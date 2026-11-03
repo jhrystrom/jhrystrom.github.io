@@ -108,8 +108,11 @@ spaces vs hyphens don't matter. The browser remembers it after the first visit.
   words (`maple-otter-lantern-quilt`), not a phrase about the party.
 - There is no revoking access. Anyone with the invite can open it, and a new password only
   locks future versions; old ciphertext stays in git history.
-- Re-encrypting with the same password keeps the printed QR codes working. `just qr`
-  refuses a password that doesn't open the committed page.
+- After editing the page, run `just encrypt party` again. It asks for the password once and
+  refuses one that doesn't open the current version, so a typo can't break the QR codes
+  already printed. To change the password on purpose, use
+  `just encrypt party --new-password`; old links and QR codes then stop working. `just qr`
+  makes the same check.
 
 See `implementation-plans/private-pages.md` for the reasoning.
 

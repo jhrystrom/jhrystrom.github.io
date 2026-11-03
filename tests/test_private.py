@@ -75,6 +75,100 @@ def test_lock_writes_a_blob_that_opens_with_the_password(tmp_path: Path) -> None
     assert warnings == ["/a.png"]
 
 
+@pytest.fixture
+def folders(tmp_path: Path) -> tuple[Path, Path]:
+    """private/ and content/locked/, with party.html already encrypted once."""
+    private, locked = tmp_path / "private", tmp_path / "locked"
+    private.mkdir()
+    (private / "party.html").write_text("<p>Old</p>")
+    encrypt.lock("party", PASSWORD, private, locked)
+    (private / "party.html").write_text("<p>New</p>")
+    return private, locked
+
+
+def test_re_encrypting_with_the_same_password_updates_the_page(folders) -> None:
+    private, locked = folders
+
+    encrypt.lock("party", "Maple Otter Lantern Quilt", private, locked)
+
+    saved = json.loads((locked / "party.json").read_text())
+    assert encrypt.decrypt(saved, PASSWORD) == b"<p>New</p>"
+
+
+def test_re_encrypting_refuses_a_different_password(folders) -> None:
+    """A typo, made twice, would otherwise break every printed QR code."""
+    private, locked = folders
+    before = (locked / "party.json").read_text()
+
+    with pytest.raises(encrypt.WrongPassword):
+        encrypt.lock("party", "maple-otter-lantern-quilts", private, locked)
+
+    assert (locked / "party.json").read_text() == before
+
+
+def test_new_password_replaces_the_old_one(folders) -> None:
+    private, locked = folders
+
+    encrypt.lock("party", "brand-new-pass-phrase", private, locked, new_password=True)
+
+    saved = json.loads((locked / "party.json").read_text())
+    assert encrypt.decrypt(saved, "brand-new-pass-phrase") == b"<p>New</p>"
+
+
+@pytest.mark.parametrize(
+    ("existing", "flags", "typed", "code", "prompts"),
+    [
+        # First time: no old password to check against, so confirm the new one.
+        (False, [], [PASSWORD, PASSWORD], 0, ["Password: ", "Again: "]),
+        (False, [], [PASSWORD, "typo"], "passwords don't match", 2),
+        # Re-encrypting: the existing page is the check, so ask once.
+        (True, [], [PASSWORD], 0, ["Password: "]),
+        (True, [], ["wrong"], 1, ["Password: "]),
+        (
+            True,
+            ["--new-password"],
+            ["fresh", "fresh"],
+            0,
+            ["New password: ", "Again: "],
+        ),
+    ],
+)
+def test_cli_prompts(
+    folders,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture,
+    existing: bool,
+    flags: list[str],
+    typed: list[str],
+    code: int | str,
+    prompts: list[str] | int,
+) -> None:
+    private, locked = folders
+    if not existing:
+        (locked / "party.json").unlink()
+    asked: list[str] = []
+    answers = iter(typed)
+
+    def getpass(prompt: str) -> str:
+        asked.append(prompt)
+        return next(answers)
+
+    monkeypatch.setattr(encrypt, "PRIVATE_DIR", private)
+    monkeypatch.setattr(encrypt, "LOCKED_DIR", locked)
+    monkeypatch.setattr(encrypt.getpass, "getpass", getpass)
+    monkeypatch.delenv("PAGE_PASSWORD", raising=False)
+    monkeypatch.setattr("sys.argv", ["encrypt.py", "party", *flags])
+
+    if isinstance(code, str):
+        with pytest.raises(SystemExit, match=code):
+            encrypt.main()
+    else:
+        assert encrypt.main() == code
+    assert asked == prompts if isinstance(prompts, list) else len(asked) == prompts
+    if code == 1:
+        assert "--new-password" in capsys.readouterr().err
+
+
 def test_share_link_carries_password_in_fragment() -> None:
     assert (
         encrypt.share_link("party", "Maple Otter Lantern Quilt")

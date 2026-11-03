@@ -1,7 +1,11 @@
 """Encrypt a standalone HTML page from private/ into content/locked/, or make its QR code.
 
-    uv run encrypt.py party        # private/party.html -> content/locked/party.json
-    uv run encrypt.py party --qr   # private/party-qr.png, linking to /p/party/#pw=...
+    uv run encrypt.py party                  # private/party.html -> content/locked/party.json
+    uv run encrypt.py party --new-password   # same, replacing the password it was locked with
+    uv run encrypt.py party --qr             # private/party-qr.png, linking to /p/party/#pw=...
+
+Re-encrypting keeps the existing password unless --new-password is given, so a typo can't
+silently break the links and QR codes already sent out.
 
 Runs locally only: CI never sees the plaintext or the password. The password comes from
 $PAGE_PASSWORD or a prompt, never an argument, so it stays out of shell history.
@@ -83,9 +87,18 @@ def local_refs(html: str) -> list[str]:
     return [ref for ref in refs if ref and not EXTERNAL_RE.match(ref)]
 
 
-def lock(name: str, password: str, private: Path, locked: Path) -> list[str]:
-    """Encrypt private/<name>.html. Returns any local asset references to warn about."""
+def lock(
+    name: str, password: str, private: Path, locked: Path, new_password: bool = False
+) -> list[str]:
+    """Encrypt private/<name>.html. Returns any local asset references to warn about.
+
+    Raises WrongPassword, leaving the page as it was, if it is already locked with a
+    different password and new_password isn't set.
+    """
     html = (private / f"{name}.html").read_bytes()
+    existing = locked / f"{name}.json"
+    if existing.exists() and not new_password:
+        decrypt(json.loads(existing.read_text()), password)
     locked.mkdir(parents=True, exist_ok=True)
     blob = encrypt(html, password)
     (locked / f"{name}.json").write_text(json.dumps(blob, indent=2) + "\n")
@@ -105,10 +118,10 @@ def qr(name: str, password: str, locked: Path, private: Path) -> Path:
     return target
 
 
-def read_password(confirm: bool) -> str:
+def read_password(confirm: bool, prompt: str = "Password: ") -> str:
     if password := os.environ.get("PAGE_PASSWORD"):
         return password
-    password = getpass.getpass("Password: ")
+    password = getpass.getpass(prompt)
     if confirm and normalize(getpass.getpass("Again: ")) != normalize(password):
         sys.exit("passwords don't match")
     return password
@@ -121,6 +134,11 @@ def main() -> int:
     parser.add_argument("name", help="private/<name>.html, served at /p/<name>/")
     parser.add_argument(
         "--qr", action="store_true", help="write private/<name>-qr.png instead"
+    )
+    parser.add_argument(
+        "--new-password",
+        action="store_true",
+        help="replace the password; links and QR codes already sent out stop working",
     )
     args = parser.parse_args()
 
@@ -139,7 +157,23 @@ def main() -> int:
     if not source.exists():
         print(f"{source.relative_to(ROOT)} not found", file=sys.stderr)
         return 1
-    for ref in lock(args.name, read_password(confirm=True), PRIVATE_DIR, LOCKED_DIR):
+    # An existing page checks the password itself; only a brand-new one needs typing twice.
+    first_time = not (LOCKED_DIR / f"{args.name}.json").exists()
+    if args.new_password:
+        password = read_password(confirm=True, prompt="New password: ")
+    else:
+        password = read_password(confirm=first_time)
+    try:
+        refs = lock(args.name, password, PRIVATE_DIR, LOCKED_DIR, args.new_password)
+    except WrongPassword:
+        print(
+            f"that isn't the password {args.name} is locked with; "
+            "pass --new-password to change it (links and QR codes already sent out "
+            "will stop working)",
+            file=sys.stderr,
+        )
+        return 1
+    for ref in refs:
         print(f"warning: {ref} is not inside the page; inline it", file=sys.stderr)
     print(f"wrote content/locked/{args.name}.json -> /p/{args.name}/")
     return 0
