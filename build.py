@@ -7,7 +7,10 @@ Also validates the content: run with --strict to turn warnings into failures.
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import datetime as dt
+import json
 import re
 import shutil
 import sys
@@ -41,6 +44,12 @@ ALLOWED_KEYS = {
     "pdf",
 }
 REQUIRED_KEYS = {"title", "date"}
+
+# Password-protected pages: ciphertext committed here, plaintext kept in gitignored private/.
+LOCKED_DIR = ROOT / "content" / "locked"
+LOCKED_FIELDS = {"salt", "iv", "iterations", "ciphertext"}
+MIN_ITERATIONS = 600_000
+LOCKED_NAME_RE = re.compile(r"\A[a-z0-9-]+\Z")
 
 FRONT_MATTER_RE = re.compile(r"\A---\n(.*?)\n---(?:\n(.*))?\Z", re.DOTALL)
 DATED_FILENAME_RE = re.compile(r"\A(\d{4})-(\d{2})-(\d{2})-(?P<slug>.+)\Z")
@@ -103,6 +112,15 @@ class Page:
     @property
     def abs_url(self) -> str:
         return SITE_URL + self.url
+
+
+@dataclass
+class Locked:
+    """An encrypted standalone page. The build only ever sees its ciphertext."""
+
+    source: Path
+    blob: dict
+    url: str
 
 
 def key_line(raw: str, key: str) -> int | None:
@@ -215,6 +233,36 @@ def resolve_url(path: Path, meta: dict, kind: str, raw: str, problems: Problems)
     return f"/talks/{slug}/"
 
 
+def load_locked(folder: Path, problems: Problems) -> list[Locked]:
+    """Validate the encrypted blobs `encrypt.py` writes, without being able to read them."""
+    locked = []
+    for path in sorted(folder.glob("*.json")):
+        if not LOCKED_NAME_RE.match(path.stem):
+            problems.error(path, "name must be lowercase letters, digits and -")
+        try:
+            blob = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            problems.error(path, f"not valid JSON: {exc}")
+            continue
+        if not isinstance(blob, dict) or set(blob) != LOCKED_FIELDS:
+            fields = ", ".join(sorted(LOCKED_FIELDS))
+            problems.error(path, f"fields must be exactly {fields}")
+            continue
+        iterations = blob["iterations"]
+        if not isinstance(iterations, int) or iterations < MIN_ITERATIONS:
+            problems.error(path, f"iterations must be at least {MIN_ITERATIONS}")
+        for name, size in (("salt", 16), ("iv", 12), ("ciphertext", None)):
+            try:
+                raw = base64.b64decode(blob[name], validate=True)
+            except (binascii.Error, TypeError):
+                problems.error(path, f"{name} is not valid base64")
+                continue
+            if size and len(raw) != size:
+                problems.error(path, f"{name} must be {size} bytes, got {len(raw)}")
+        locked.append(Locked(source=path, blob=blob, url=f"/p/{path.stem}/"))
+    return locked
+
+
 def link_translations(pages: list[Page], problems: Problems) -> None:
     groups: dict[str, list[Page]] = {}
     for page in pages:
@@ -250,8 +298,8 @@ def link_translations(pages: list[Page], problems: Problems) -> None:
             page.translations = [other for other in group if other is not page]
 
 
-def check_unique_urls(pages: list[Page], problems: Problems) -> None:
-    seen: dict[str, Page] = {}
+def check_unique_urls(pages: list[Page | Locked], problems: Problems) -> None:
+    seen: dict[str, Page | Locked] = {}
     for page in pages:
         if clash := seen.get(page.url):
             problems.error(
@@ -351,8 +399,10 @@ def build(out: Path, strict: bool, future: bool) -> int:
     posts, talks = keep(posts), keep(talks)
     pages = keep([index]) + posts + talks
 
+    locked = load_locked(LOCKED_DIR, problems)
+
     link_translations(pages, problems)
-    check_unique_urls(pages, problems)
+    check_unique_urls([*pages, *locked], problems)
     if (failed := report(problems, strict)) is not None:
         return failed
 
@@ -426,10 +476,12 @@ def build(out: Path, strict: bool, future: bool) -> int:
         if page.is_pdf:
             continue  # served straight from static/
         write(page.url, env.get_template("page.html").render(page=page, **shared))
+    for page in locked:
+        write(page.url, env.get_template("locked.html").render(locked=page, **shared))
     write("/feed.xml", env.get_template("feed.xml").render(posts=listed, **shared))
     write("/sitemap.xml", env.get_template("sitemap.xml").render(pages=pages, **shared))
 
-    print(f"built {len(pages) + 1} pages into {out}")
+    print(f"built {len(pages) + len(locked) + 1} pages into {out}")
     return 0
 
 

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Private page{% endblock %}
+{% block description %}A private page.{% endblock %}
+{% block head %}
+  <meta name="robots" content="noindex, nofollow" />
+{% endblock %}
+{% block main %}
+  <article>
+    <h1>Private page</h1>
+    <form class="unlock">
+      <label for="password">Password</label>
+      <div>
+        <input id="password" type="text" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false" enterkeyhint="go" required />
+        <button type="submit">Open</button>
+      </div>
+      <p role="alert" aria-live="polite"></p>
+    </form>
+  </article>
+  <script type="application/json" id="locked">{{ locked.blob | tojson }}</script>
+  <script>
+    // Mirrors encrypt.py: PBKDF2-SHA256 -> AES-256-GCM, password normalised the same way.
+    (() => {
+      const blob = JSON.parse(document.getElementById("locked").textContent);
+      const storageKey = "locked:" + location.pathname;
+      const form = document.querySelector("form.unlock");
+      const input = form.querySelector("input");
+      const button = form.querySelector("button");
+      const alert = form.querySelector("[role=alert]");
+      const bytes = (text) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+      const normalize = (text) => text.trim().toLowerCase().replace(/[\s-]+/g, "-");
+
+      const storage = {
+        get: () => { try { return localStorage.getItem(storageKey); } catch { return null; } },
+        set: (value) => { try { localStorage.setItem(storageKey, value); } catch {} },
+        drop: () => { try { localStorage.removeItem(storageKey); } catch {} },
+      };
+
+      async function decrypt(password) {
+        const material = await crypto.subtle.importKey(
+          "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+        const key = await crypto.subtle.deriveKey(
+          { name: "PBKDF2", salt: bytes(blob.salt), iterations: blob.iterations, hash: "SHA-256" },
+          material, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+        const plain = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: bytes(blob.iv) }, key, bytes(blob.ciphertext));
+        return new TextDecoder().decode(plain);
+      }
+
+      // Resolves false on a wrong password (GCM authentication fails) instead of throwing.
+      // A typed and an automatic attempt can race; whichever opens first wins.
+      let opened = false;
+      async function open(password) {
+        if (opened) return true;
+        password = normalize(password);
+        let html;
+        try {
+          html = await decrypt(password);
+        } catch {
+          return opened;
+        }
+        if (opened) return true;
+        opened = true;
+        storage.set(password);
+        // The FAQ is a whole document: let its own head, styles and scripts take over.
+        document.open();
+        document.write(html);
+        document.close();
+        return true;
+      }
+
+      let submitted = false;
+
+      // Typed by the guest: lock the button while deriving, select the text on failure.
+      async function submit() {
+        submitted = true;
+        button.disabled = true;
+        alert.textContent = "Opening…";
+        if (await open(input.value)) return;
+        alert.textContent = "Wrong password. Check the one on your invite.";
+        button.disabled = false;
+        input.select();
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submit();
+      });
+
+      // From the link or this browser's memory. The guest may already be typing, so this
+      // never touches the field or the button.
+      (async () => {
+        // Fragments never reach the server; clear it so the password doesn't linger.
+        const fromLink = new URLSearchParams(location.hash.slice(1)).get("pw");
+        if (fromLink !== null) {
+          history.replaceState(null, "", location.pathname + location.search);
+          if (await open(fromLink)) return;
+          if (!submitted) {
+            alert.textContent = "This link's password is out of date. Enter the one from your invite.";
+          }
+        }
+        const remembered = storage.get();
+        if (remembered !== null) {
+          if (await open(remembered)) return;
+          storage.drop();  // The password has changed since this browser last opened it.
+        }
+        if (fromLink === null && document.activeElement !== input) input.focus();
+      })();
+    })();
+  </script>
+{% endblock %}

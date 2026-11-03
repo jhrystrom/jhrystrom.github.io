@@ -6,3 +6,5 @@ _site/
 .layout-screenshots/
 .pytest_cache/
 __pycache__/
+# Plaintext for password-protected pages; only content/locked/ ciphertext is committed.
+private/

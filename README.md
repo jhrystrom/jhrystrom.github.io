@@ -86,6 +86,33 @@ original: true                    # exactly one of the pair is true
 Only the original is listed on the front page and in the feed, with an
 `(English available)` link beside it. Both get `hreflang` tags and their own URL.
 
+## Publishing a password-protected page
+
+For a standalone HTML page (e.g. a party FAQ) that should be shared, not public. The page is
+encrypted on your machine; only the ciphertext is committed, and the browser decrypts it.
+
+```
+$EDITOR private/party.html   # gitignored: back it up, it's the only plaintext copy
+just encrypt party           # asks for the password -> content/locked/party.json
+just qr party                # private/party-qr.png for the invite
+git add content/locked/party.json && git commit && git push
+```
+
+It's served at `/p/party/`, never listed, and marked `noindex`. Guests either scan the QR
+code (`/p/party/#pw=…`, which fills the password in) or type the password. Capitals and
+spaces vs hyphens don't matter. The browser remembers it after the first visit.
+
+- The file must be self-contained: inline CSS and scripts, images as `data:` URIs.
+  `just encrypt` warns about anything it loads from this site.
+- The ciphertext is public, so the password must hold up to offline guessing: four random
+  words (`maple-otter-lantern-quilt`), not a phrase about the party.
+- There is no revoking access. Anyone with the invite can open it, and a new password only
+  locks future versions; old ciphertext stays in git history.
+- Re-encrypting with the same password keeps the printed QR codes working. `just qr`
+  refuses a password that doesn't open the committed page.
+
+See `implementation-plans/private-pages.md` for the reasoning.
+
 ## What `just check` catches
 
 `build.py --strict` is the validator as well as the generator. It fails on:
@@ -99,6 +126,9 @@ Only the original is listed on the front page and in the feed, with an
 - an internal link or image that doesn't resolve
 - a `pdf` that isn't in `static/papers/`
 - an image in `static/images/` or a PDF in `static/papers/` that no page references
+- a `content/locked/*.json` with fields other than `salt`, `iv`, `iterations`, `ciphertext`,
+  bad base64, fewer than 600,000 iterations, or a name that isn't lowercase-and-hyphens
+- nothing under `private/` may be committed (a test fails if it is)
 
 Problems print as `content/posts/foo.md:4: …` so an editor can jump to them.
 

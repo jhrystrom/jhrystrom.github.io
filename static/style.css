@@ -270,3 +270,43 @@ header.site h1 {
     margin: 0 0 1.25rem;
   }
 }
+
+/* Lock screen for password-protected pages (templates/locked.html). */
+form.unlock div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+form.unlock input,
+form.unlock button {
+  font: inherit;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+form.unlock input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+form.unlock button {
+  color: var(--bg);
+  background: var(--link);
+  border-color: var(--link);
+  cursor: pointer;
+}
+
+form.unlock button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+form.unlock [role="alert"] {
+  min-height: 1.65em;
+  color: var(--muted);
+}

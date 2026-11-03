@@ -6,6 +6,7 @@ pass --layout-screenshots to capture every page for a once-over by eye.
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import http.server
 import shutil
@@ -15,7 +16,8 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import Error, Page
+from conftest import LockedSite
+from playwright.sync_api import Error, Page, expect
 
 pytestmark = pytest.mark.layout
 
@@ -62,13 +64,13 @@ MEASURE_TEXT = """() => {
 }"""
 
 
-@pytest.fixture(scope="session")
-def site_url(site: Path) -> Iterator[str]:
+@contextlib.contextmanager
+def serve(directory: Path) -> Iterator[str]:
     class QuietHandler(http.server.SimpleHTTPRequestHandler):
         def log_message(self, *args: object) -> None:
             pass
 
-    handler = functools.partial(QuietHandler, directory=site)
+    handler = functools.partial(QuietHandler, directory=directory)
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -78,6 +80,18 @@ def site_url(site: Path) -> Iterator[str]:
         server.shutdown()
         server.server_close()
         thread.join()
+
+
+@pytest.fixture(scope="session")
+def site_url(site: Path) -> Iterator[str]:
+    with serve(site) as url:
+        yield url
+
+
+@pytest.fixture(scope="session")
+def locked_url(locked_site: LockedSite) -> Iterator[str]:
+    with serve(locked_site.out) as url:
+        yield url + "/p/fixture/"
 
 
 @pytest.fixture(scope="session")
@@ -227,3 +241,59 @@ def assert_images_and_captions_are_centred_on_the_text(page: Page, text: dict) -
             assert figure["caption"] >= figure["bottom"] - 1, (
                 f"caption of {figure['src']} sits beside the image, not below"
             )
+
+
+def test_locked_page_opens_from_link_and_remembers(
+    page: Page, locked_site: LockedSite, locked_url: str
+) -> None:
+    """Python encrypts and WebCrypto decrypts: this is what proves the formats agree."""
+    page.goto(f"{locked_url}#pw={locked_site.password}")
+    expect(page).to_have_title(locked_site.title)
+    expect(page.locator("#marker")).to_have_text(locked_site.marker)
+    assert page.evaluate("document.body.dataset.ran") == "yes", "FAQ scripts must run"
+    assert page.evaluate("location.hash") == "", "password lingers in the address bar"
+
+    page.reload()
+    expect(page).to_have_title(locked_site.title)
+
+
+def test_locked_page_falls_back_to_the_prompt(
+    page: Page, locked_site: LockedSite, locked_url: str
+) -> None:
+    page.set_viewport_size({"width": VIEWPORTS["phone"], "height": 900})
+    page.goto(f"{locked_url}#pw=out-of-date-password")
+    alert = page.get_by_role("alert")
+    expect(alert).to_contain_text("out of date")
+    expect(page).to_have_title("Private page")
+    scroll = page.evaluate("document.documentElement.scrollWidth")
+    assert scroll <= VIEWPORTS["phone"], f"lock screen is {scroll}px wide"
+
+    password = page.get_by_label("Password")
+    password.fill("not-the-password")
+    password.press("Enter")
+    expect(alert).to_contain_text("Wrong password")
+
+    password.fill("  Maple Otter Lantern Quilt ")
+    page.get_by_role("button", name="Open").click()
+    expect(page.locator("#marker")).to_have_text(locked_site.marker)
+
+
+def test_typing_during_the_automatic_check_is_not_lost(
+    page: Page, locked_site: LockedSite, locked_url: str
+) -> None:
+    """Guests may start typing before a stale link's password has finished failing.
+
+    A phone takes far longer over the key derivation than desktop Chromium (which runs it
+    off the main thread, out of reach of CPU throttling), so delay it until the check is
+    sure to fail partway through the typing.
+    """
+    page.add_init_script("""
+      const deriveKey = crypto.subtle.deriveKey.bind(crypto.subtle);
+      crypto.subtle.deriveKey = (...args) =>
+        new Promise((resolve) => setTimeout(resolve, 300)).then(() => deriveKey(...args));
+    """)
+    page.goto(f"{locked_url}#pw=out-of-date-password")
+    page.get_by_label("Password").click()
+    page.keyboard.type("Maple Otter Lantern Quilt", delay=40)
+    page.keyboard.press("Enter")
+    expect(page.locator("#marker")).to_have_text(locked_site.marker)

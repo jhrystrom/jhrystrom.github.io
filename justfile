@@ -20,6 +20,14 @@ dev *flags: (build flags)
     uvx watchfiles "uv run build.py {{flags}}" content templates static &
     python3 -m http.server 8000 --directory _site
 
+# Encrypt private/<name>.html into content/locked/<name>.json, served at /p/<name>/.
+encrypt name:
+    uv run encrypt.py {{name}}
+
+# Write private/<name>-qr.png, a link that opens /p/<name>/ with the password filled in.
+qr name:
+    uv run encrypt.py {{name}} --qr
+
 # Format everything in place.
 fmt:
     uv run ruff format .
