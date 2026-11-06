@@ -23,6 +23,8 @@ jobs:
   # Separate job so the ~100MB browser download never slows `just check`.
   layout:
     runs-on: ubuntu-latest
+    # A hung browser install would otherwise hold the deploy for GitHub's 6-hour default.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.0.1
