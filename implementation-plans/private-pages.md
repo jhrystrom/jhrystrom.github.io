@@ -145,7 +145,7 @@ underneath** ("Can't scan? Go to jhrystrom.github.io/p/party and enter `maple-ot
   the passphrase once, before printing, and treat it as fixed.
 - Keep the QR code short and easy to scan: the short `/p/party/` URL plus a 4-word
   lowercase passphrase (about 51 bits from the EFF word list, enough given the slow key
-  derivation). `just qr party` can generate the PNG locally (the `segno` package,
+  derivation). `just qr party` can generate the PNG locally (`segno` for the matrix, drawn in a rustic style with Pillow;
   dev group); it reads the password the same way `just encrypt` does, and the PNG goes to
   `private/` so it isn't committed.
 

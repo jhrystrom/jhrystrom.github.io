@@ -2,6 +2,7 @@
 
 import base64
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -188,6 +189,35 @@ def test_qr_refuses_a_password_that_does_not_open_the_page(
     target = encrypt.qr("party", PASSWORD, tmp_path, tmp_path)
     assert target == tmp_path / "party-qr.png"
     assert target.read_bytes().startswith(b"\x89PNG")
+
+
+@pytest.mark.skipif(
+    shutil.which("zbarimg") is None, reason="needs zbar (brew install zbar)"
+)
+@pytest.mark.parametrize("width", [300, 600, 1200, None])
+def test_rustic_qr_still_scans(tmp_path: Path, width: int | None) -> None:
+    """The styling must never cost a guest a working link, at any print or photo size."""
+    from PIL import Image
+
+    link = encrypt.share_link("party", PASSWORD)
+    target = tmp_path / "qr.png"
+    encrypt.render_rustic_qr(link, target)
+    qr = Image.open(target)
+    assert qr.mode == "RGBA" and qr.getpixel((0, 0))[3] == 0  # transparent background
+    # Printed on a light invite, as it will be; zbar may read transparent as black.
+    page = Image.new("RGB", qr.size, "white")
+    page.paste(qr, mask=qr)
+    if width:
+        page = page.resize((width, width), Image.Resampling.LANCZOS)
+    page.save(target)
+
+    decoded = subprocess.run(
+        ["zbarimg", "-q", "--raw", str(target)],
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.strip()
+    assert decoded == link
 
 
 def test_load_locked(tmp_path: Path, blob: dict) -> None:
